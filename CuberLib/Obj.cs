@@ -12,6 +12,8 @@ namespace CuberLib
 {
     public class Obj
     {
+		const int NUMCORES = 8;
+
         public List<Vertex> VertexList;
         public List<Face> FaceList;
         public List<TextureVertex> TextureList;
@@ -61,23 +63,25 @@ namespace CuberLib
 		/// <param name="gridWidth">X size of grid</param>
 		/// <param name="tileX">Zero based X index of tile</param>
 		/// <param name="tileY">Zero based Y index of tile</param>
-        public void WriteObjGridTile(string path, int gridHeight, int gridWidth, int tileX, int tileY)
+        public void WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ)
         {
             double tileHeight = Size.YSize / gridHeight;
             double tileWidth = Size.XSize / gridWidth;
+			double tileDepth = Size.ZSize / gridDepth;
 
-            double yOffset = tileHeight * tileY;
+			double yOffset = tileHeight * tileY;
             double xOffset = tileWidth * tileX;
+			double zOffset = tileDepth * tileZ;
 
-            Extent newSize = new Extent
+			Extent newSize = new Extent
             {
                 XMin = Size.XMin + xOffset,
                 YMin = Size.YMin + yOffset,
-                ZMax = Size.ZMax,
-                ZMin = Size.ZMin,
+				ZMin = Size.ZMin + zOffset,				
                 XMax = Size.XMin + xOffset + tileWidth,
-                YMax = Size.YMin + yOffset + tileHeight
-            };
+                YMax = Size.YMin + yOffset + tileHeight,
+				ZMax = Size.ZMin + zOffset + tileDepth
+			};
 
             WriteObj(path, newSize);
         }
@@ -88,6 +92,7 @@ namespace CuberLib
 		/// </summary>
 		public void WriteObj(string path, Extent boundries)
         {
+			if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
             if (File.Exists(path)) File.Delete(path);
 
             // Build the chunk
@@ -106,6 +111,9 @@ namespace CuberLib
 
             Task.WaitAll(new Task[] { tv, ttv });
 
+			// Abort if we would be writing an empty file
+			if (!requiredVertices.Any()) return;
+
 			using (var outStream = File.OpenWrite(path))
 			using (var writer = new StreamWriter(outStream))
 			{
@@ -119,19 +127,22 @@ namespace CuberLib
 				//Write each vertex and update faces
 				Console.WriteLine("Writing vertices.");
 				int newVertexIndex = 0;
-				Parallel.ForEach(requiredVertices, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
-				{                
-					Vertex moving = VertexList[i-1];
-					int newIndex = WriteVertexWithNewIndex(moving, ref newVertexIndex, writer);                    
+
+				Parallel.ForEach(requiredVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
+				{
+					Vertex moving = VertexList[i - 1];
+					int newIndex = WriteVertexWithNewIndex(moving, ref newVertexIndex, writer);
 
 					var facesRequiringUpdate = chunkFaceList.Where(f => f.VertexIndexList.Contains(i));
 					foreach (var face in facesRequiringUpdate) face.UpdateVertexIndex(moving.Index, newIndex);
 				});
 
+
 				//Write each texture vertex and update faces
 				Console.WriteLine("Writing texture vertices.");
 				int newTextureVertexIndex = 0;
-				Parallel.ForEach(requiredTextureVertices, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+
+				Parallel.ForEach(requiredTextureVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
 				{
 					TextureVertex moving = TextureList[i-1];
 					int newIndex = WriteVertexWithNewIndex(moving, ref newTextureVertexIndex, writer);
@@ -182,7 +193,7 @@ namespace CuberLib
 		/// </summary>		
         private void processLine(string line)
         {
-            string[] parts = line.Split(' ');
+            string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length > 0)
             {
