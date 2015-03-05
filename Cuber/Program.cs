@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,47 +14,22 @@ namespace Cuber
 		// as I have only supported the subset of data types it outputs.
 		static void Main(string[] args)
         {
-			if (args.Length < 1)
+			if (args.Length < 2)
 			{
-				Console.WriteLine("Please provide the path to a .obj file");
+				Console.WriteLine("usage: cuber <path to obj file> <output folder>");
 				return;
 			};
 			
-			string path = args[0];
+			string inputPath = args[0];
+			string outputPath = args[1];
 
-			// Parse and load the object
-			Console.WriteLine("Loading {0}", path);
-            Obj obj = new Obj();
-			obj.LoadObj(path, ShowLinesLoaded);
+			CubeManager manager = new CubeManager(inputPath, 20, 20, 1);
 
-			// Write out a bit of info about the object
-			Console.WriteLine("Loaded {0} vertices and {1} faces", obj.VertexList.Count(), obj.FaceList.Count());
-			Console.WriteLine("Size: X {0} Y {1} Z {2}", obj.Size.XSize, obj.Size.YSize, obj.Size.ZSize);
-			Console.WriteLine("Memory Used: " + GC.GetTotalMemory(true) / 1024 / 1024 + "mb");
-
-			// Generate some tiles, we are ignoring Z all the way through the 
-			// stack right now.  In our OBJ files Z is a vector towards the center of the earth.
-			for (int x = 0; x < 20; x++)
-			{
-				for (int y = 0; y < 20; y++)
-				{
-					for (int z = 0; z < 2; z++)
-					{
-						obj.WriteObjGridTile(string.Format("H:\\aerialdata\\tiling_justin\\output_{0}_{1}_{2}.obj", x, y, z), 40, 40, 3, x, y, z);
-					}
-				}
-			}
+			manager.GenerateTiles(outputPath);
 
 			Console.WriteLine("Complete");
-            Console.ReadKey();
         }
 
-		// Action to show incremental file loading status
-        public static void ShowLinesLoaded(int lines)
-        {
-            Console.SetCursorPosition(0, 10);
-            Console.Write("Loaded {0} lines             ", lines);
-            Console.SetCursorPosition(0, 0);
-        }
+		
     }
 }

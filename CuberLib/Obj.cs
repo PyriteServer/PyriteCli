@@ -12,7 +12,7 @@ namespace CuberLib
 {
     public class Obj
     {
-		const int NUMCORES = 8;
+		const int NUMCORES = 7;
 
         public List<Vertex> VertexList;
         public List<Face> FaceList;
@@ -63,7 +63,7 @@ namespace CuberLib
 		/// <param name="gridWidth">X size of grid</param>
 		/// <param name="tileX">Zero based X index of tile</param>
 		/// <param name="tileY">Zero based Y index of tile</param>
-        public void WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ)
+        public int WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ)
         {
             double tileHeight = Size.YSize / gridHeight;
             double tileWidth = Size.XSize / gridWidth;
@@ -83,14 +83,15 @@ namespace CuberLib
 				ZMax = Size.ZMin + zOffset + tileDepth
 			};
 
-            WriteObj(path, newSize);
+            return WriteObj(path, newSize);
         }
 
 		/// <summary>
 		/// Writes an OBJ uses vertices and faces contained within the provided boundries.
 		/// Typically used by WriteObjGridTile(...)
+		/// Returns number of vertices written, or 0 if nothing was written.
 		/// </summary>
-		public void WriteObj(string path, Extent boundries)
+		public int WriteObj(string path, Extent boundries)
         {
 			if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
             if (File.Exists(path)) File.Delete(path);
@@ -112,7 +113,10 @@ namespace CuberLib
             Task.WaitAll(new Task[] { tv, ttv });
 
 			// Abort if we would be writing an empty file
-			if (!requiredVertices.Any()) return;
+			if (!requiredVertices.Any())
+			{
+				return 0;
+			}
 
 			using (var outStream = File.OpenWrite(path))
 			using (var writer = new StreamWriter(outStream))
@@ -154,7 +158,9 @@ namespace CuberLib
 				// Write the faces
 				Console.WriteLine("Writing faces.");
 				chunkFaceList.ForEach(f => writer.WriteLine(f));
-            }   
+            }
+
+			return requiredVertices.Count();
         }
 
 		/// <summary>
