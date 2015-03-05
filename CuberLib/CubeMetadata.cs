@@ -15,6 +15,7 @@ namespace CuberLib
 
 		public CubeMetadata(XyzPoint size)
 		{
+			GridSize = size;
 			CubeExists = new bool[size.X, size.Y, size.Z];
 		}
 	}

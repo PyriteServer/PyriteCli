@@ -44,8 +44,8 @@ namespace CuberLib
 				{
 					for (int z = 0; z < size.Z; z++)
 					{
-						string fileOutPath = Path.Combine(outputPath, string.Format("output_{0}_{1}_{2}.obj", x, y, z));
-						int vertexCount = ObjInstance.WriteObjGridTile(fileOutPath, 40, 40, 3, x, y, z);
+						string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}.obj", x, y, z));
+						int vertexCount = ObjInstance.WriteObjGridTile(fileOutPath, size.X, size.Y, size.Z, x, y, z);
 						metadata.CubeExists[x, y, z] = vertexCount > 0;
                     }
 				}

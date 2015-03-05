@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using clipr;
 using CuberLib;
 
 namespace Cuber
@@ -14,22 +15,51 @@ namespace Cuber
 		// as I have only supported the subset of data types it outputs.
 		static void Main(string[] args)
         {
-			if (args.Length < 2)
+			var opt = CliParser.Parse<Options>(args);
+
+			foreach (string path in opt.Input)
 			{
-				Console.WriteLine("usage: cuber <path to obj file> <output folder>");
-				return;
-			};
-			
-			string inputPath = args[0];
-			string outputPath = args[1];
-
-			CubeManager manager = new CubeManager(inputPath, 20, 20, 1);
-
-			manager.GenerateTiles(outputPath);
+				CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
+				manager.GenerateTiles(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)));
+			}
 
 			Console.WriteLine("Complete");
         }
 
 		
     }
+
+	[ApplicationInfo(Description = "Cuber Options")]
+	public class Options
+	{
+		[NamedArgument('x', "xsize", Action = ParseAction.Store,
+			Description = "The number of times to subdivide in the X dimension.  Default 10.")]
+		public int xSize { get; set; }
+
+		[NamedArgument('y', "ysize", Action = ParseAction.Store,
+			Description = "The number of times to subdivide in the Y dimension.  Default 10.")]
+		public int ySize { get; set; }
+
+		[NamedArgument('z', "zsize", Action = ParseAction.Store,
+			Description = "The number of times to subdivide in the Z dimension.  Default 10.")]
+		public int zSize { get; set; }
+
+		[PositionalArgument(0, MetaVar = "OUT",
+			Description = "Output folder")]
+		public string OutputPath { get; set; }
+
+		[PositionalArgument(1, MetaVar = "IN",
+			NumArgs = 1,
+			Constraint = NumArgsConstraint.AtLeast,
+			Description = "A list of .obj files to process")]
+		public List<string> Input { get; set; }
+
+		public Options()
+		{
+			xSize = 10;
+			ySize = 10;
+			zSize = 10;
+		}
+	}
+
 }
