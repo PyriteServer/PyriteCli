@@ -101,6 +101,7 @@ namespace CuberLib
             List<Face> chunkFaceList;
             List<TextureVertex> chunkTextureList;
 
+			FaceList.ForEach(f => f.RevertVertices());
             chunkFaceList = FaceList.Where(v => v.InExtent(boundries, VertexList)).ToList();
 
             // Build a list of vertices indexes needed for these faces

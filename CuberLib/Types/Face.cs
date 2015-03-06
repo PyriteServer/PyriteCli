@@ -14,8 +14,8 @@ namespace CuberLib.Types
         public int[] VertexIndexList { get; set; }
         public int[] TextureVertexIndexList { get; set; }     
         
-        private Boolean[] updatedVertex;
-        private Boolean[] updatedTexture;
+        private int[] originalVertexIndexList;
+        private int[] originalTextureVertexIndexList;
 
         public void LoadFromStringArray(string[] data)
         {
@@ -28,8 +28,10 @@ namespace CuberLib.Types
             int vcount = data.Count() - 1;
             VertexIndexList = new int[vcount];
             TextureVertexIndexList = new int[vcount];
+			originalVertexIndexList = new int[vcount];
+			originalTextureVertexIndexList = new int[vcount];
 
-            bool success;
+			bool success;
 
             for (int i = 0; i < vcount; i++)
             {
@@ -48,6 +50,9 @@ namespace CuberLib.Types
                 }
             }
 
+			VertexIndexList.CopyTo(originalVertexIndexList,0);
+			TextureVertexIndexList.CopyTo(originalTextureVertexIndexList, 0);
+
         }
 
         public bool InExtent(Extent extent, List<Vertex> vertexList)
@@ -62,15 +67,12 @@ namespace CuberLib.Types
         }
 
         public void UpdateVertexIndex(int oldIndex, int newIndex)
-        {
-            if (updatedVertex == null) updatedVertex = new Boolean[VertexIndexList.Count()];
-
+        {           
             for(int index = 0; index < VertexIndexList.Count(); index++)
             {
-                if (VertexIndexList[index] == oldIndex && updatedVertex[index] == false)
+                if (originalVertexIndexList[index] == oldIndex)
                 {
                     VertexIndexList[index] = newIndex;
-                    updatedVertex[index] = true;
                     return;
                 }
             }
@@ -78,18 +80,21 @@ namespace CuberLib.Types
 
         public void UpdateTextureVertexIndex(int oldIndex, int newIndex)
         {
-            if (updatedTexture == null) updatedTexture = new Boolean[TextureVertexIndexList.Count()];
-
             for (int index = 0; index < TextureVertexIndexList.Count(); index++)
             {
-                if (TextureVertexIndexList[index] == oldIndex && updatedTexture[index] == false)
+                if (originalTextureVertexIndexList[index] == oldIndex)
                 {
                     TextureVertexIndexList[index] = newIndex;
-                    updatedTexture[index] = true;
                     return;
                 }
             }
         }
+
+		public void RevertVertices()
+		{
+			originalVertexIndexList.CopyTo(VertexIndexList, 0);
+			originalTextureVertexIndexList.CopyTo(TextureVertexIndexList, 0);
+		}
 
         // HACKHACK this will write invalid files if there are no texture vertices in
         // the faces, since we don't read that in properly yet
