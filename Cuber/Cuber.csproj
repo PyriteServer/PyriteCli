@@ -7,8 +7,8 @@
     <ProjectGuid>{558DDB06-CD0D-4346-96AA-4B5BEE498F04}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ObjChunk</RootNamespace>
-    <AssemblyName>ObjChunk</AssemblyName>
+    <RootNamespace>Cuber</RootNamespace>
+    <AssemblyName>Cuber</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

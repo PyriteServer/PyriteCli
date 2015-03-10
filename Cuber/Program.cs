@@ -19,8 +19,17 @@ namespace Cuber
 
 			foreach (string path in opt.Input)
 			{
-				CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-				manager.GenerateTiles(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)));
+                // Check if we are processing an image or a mesh
+                if (Path.GetExtension(path).ToUpper().EndsWith("JPG"))
+                {
+                    ImageTile tiler = new ImageTile(path, opt.xSize, opt.ySize);
+                    tiler.GenerateTiles(opt.OutputPath);
+                }
+                else
+                {
+                    CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
+                    manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)));
+                }
 			}
 
 			Console.WriteLine("Complete");

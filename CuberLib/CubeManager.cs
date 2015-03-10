@@ -33,7 +33,7 @@ namespace CuberLib
 			Console.WriteLine("Memory Used: " + GC.GetTotalMemory(true) / 1024 / 1024 + "mb");
 		}
 
-		public void GenerateTiles(string outputPath)
+		public void GenerateCubes(string outputPath)
 		{
 			CubeMetadata metadata = new CubeMetadata(size) { Extents = ObjInstance.Size };
 
