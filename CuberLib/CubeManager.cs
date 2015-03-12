@@ -42,12 +42,13 @@ namespace CuberLib
 			{
 				for (int y = 0; y < size.Y; y++)
 				{
-					for (int z = 0; z < size.Z; z++)
+					Parallel.For(0, size.Z, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (z) =>
 					{
+						Console.WriteLine("Processing cube [{0}, {1}, {2}]", x, y, z);
 						string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}.obj", x, y, z));
 						int vertexCount = ObjInstance.WriteObjGridTile(fileOutPath, size.X, size.Y, size.Z, x, y, z);
 						metadata.CubeExists[x, y, z] = vertexCount > 0;
-                    }
+					});
 				}
 			}
 
@@ -61,10 +62,9 @@ namespace CuberLib
 
 		// Action to show incremental file loading status
 		public static void ShowLinesLoaded(int lines)
-		{
-			Console.SetCursorPosition(0, 10);
-			Console.Write("Loaded {0} lines             ", lines);
-			Console.SetCursorPosition(0, 0);
+		{			
+			Console.SetCursorPosition(0, Console.CursorTop);
+			Console.Write("Loaded {0} lines             ", lines);			
 		}
 	}
 }

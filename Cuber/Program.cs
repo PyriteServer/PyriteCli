@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using clipr;
+using clipr.Core;
 using CuberLib;
 
 namespace Cuber
@@ -15,26 +17,43 @@ namespace Cuber
 		// as I have only supported the subset of data types it outputs.
 		static void Main(string[] args)
         {
-			var opt = CliParser.Parse<Options>(args);
+			Options opt;
 
-			foreach (string path in opt.Input)
+			// Setup a timer for all operations
+			Stopwatch stopwatch = new Stopwatch();
+			stopwatch.Start();
+
+			try
 			{
-                // Check if we are processing an image or a mesh
-                if (Path.GetExtension(path).ToUpper().EndsWith("JPG"))
-                {
-                    ImageTile tiler = new ImageTile(path, opt.xSize, opt.ySize);
-                    tiler.GenerateTiles(opt.OutputPath);
-                }
-                else
-                {
-                    CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-                    manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)));
-                }
+				opt = CliParser.Parse<Options>(args);
+
+				foreach (string path in opt.Input)
+				{
+					// Check if we are processing an image or a mesh
+					if (Path.GetExtension(path).ToUpper().EndsWith("JPG"))
+					{
+						ImageTile tiler = new ImageTile(path, opt.xSize, opt.ySize);
+						tiler.GenerateTiles(opt.OutputPath);
+					}
+					else
+					{
+						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
+						manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)));
+					}
+				}
+			}
+			catch (ParserExit)
+			{
+				return;
+			}
+			catch (ParseException)
+			{
+				Console.WriteLine("usage: Cuber --help");
 			}
 
-			Console.WriteLine("Complete");
-        }
-
+			stopwatch.Stop();
+			Console.WriteLine(stopwatch.Elapsed.ToString());
+		}		
 		
     }
 

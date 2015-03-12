@@ -83,7 +83,7 @@ namespace CuberLib
 				ZMax = Size.ZMin + zOffset + tileDepth
 			};
 
-            return WriteObj(path, newSize);
+			return WriteObj(path, newSize);
         }
 
 		/// <summary>
@@ -100,9 +100,13 @@ namespace CuberLib
             List<Vertex> chunkVertexList;
             List<Face> chunkFaceList;
             List<TextureVertex> chunkTextureList;
+			HashSet<Face> chunkFaceHashSet;
 
+			// Revert all vertices in case we previously changed their indexes
 			FaceList.ForEach(f => f.RevertVertices());
-            chunkFaceList = FaceList.Where(v => v.InExtent(boundries, VertexList)).ToList();
+
+			// Get all faces in this cube
+			chunkFaceList = FaceList.Where(v => v.InExtent(boundries, VertexList)).ToList();
 
             // Build a list of vertices indexes needed for these faces
             List<int> requiredVertices = null;
@@ -111,13 +115,17 @@ namespace CuberLib
             var tv = Task.Run(() => { requiredVertices = chunkFaceList.SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
             var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
 
-            Task.WaitAll(new Task[] { tv, ttv });
+			tv.Wait();
 
 			// Abort if we would be writing an empty file
+			// no need to wait on texture vertices;
 			if (!requiredVertices.Any())
 			{
 				return 0;
 			}
+			ttv.Wait();			
+
+			Console.WriteLine("{0} vertices and {1} texture vertices", requiredVertices.Count, requiredTextureVertices.Count);
 
 			using (var outStream = File.OpenWrite(path))
 			using (var writer = new StreamWriter(outStream))
@@ -129,8 +137,7 @@ namespace CuberLib
 				if (!string.IsNullOrEmpty(mtl))
 					writer.WriteLine("mtllib " + mtl);
 
-				//Write each vertex and update faces
-				Console.WriteLine("Writing vertices.");
+				//Write each vertex and update faces				
 				int newVertexIndex = 0;
 
 				Parallel.ForEach(requiredVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
@@ -144,7 +151,6 @@ namespace CuberLib
 
 
 				//Write each texture vertex and update faces
-				Console.WriteLine("Writing texture vertices.");
 				int newTextureVertexIndex = 0;
 
 				Parallel.ForEach(requiredTextureVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
@@ -157,7 +163,6 @@ namespace CuberLib
 				});
 
 				// Write the faces
-				Console.WriteLine("Writing faces.");
 				chunkFaceList.ForEach(f => writer.WriteLine(f));
             }
 
