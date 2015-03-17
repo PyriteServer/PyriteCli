@@ -35,10 +35,14 @@ namespace Cuber
 						ImageTile tiler = new ImageTile(path, opt.xSize, opt.ySize);
 						tiler.GenerateTiles(opt.OutputPath);
 					}
-					else
+					else if (Path.GetExtension(path).ToUpper().EndsWith("OBJ"))
 					{
 						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-						manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)));
+						manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)), opt.MtlOverride);
+					}
+					else
+					{
+						Console.WriteLine("Cuber only accepts .jpg and .obj files for input.");
 					}
 				}
 			}
@@ -71,6 +75,10 @@ namespace Cuber
 		[NamedArgument('z', "zsize", Action = ParseAction.Store,
 			Description = "The number of times to subdivide in the Z dimension.  Default 10.")]
 		public int zSize { get; set; }
+
+		[NamedArgument('m', "mtl", Action = ParseAction.Store,
+			Description = "Override the MTL field in output obj files. e.g. -z model.mtl")]
+		public string MtlOverride { get; set; }
 
 		[PositionalArgument(0, MetaVar = "OUT",
 			Description = "Output folder")]
