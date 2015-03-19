@@ -63,7 +63,7 @@ namespace CuberLib
 		/// <param name="gridWidth">X size of grid</param>
 		/// <param name="tileX">Zero based X index of tile</param>
 		/// <param name="tileY">Zero based Y index of tile</param>
-        public int WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ, string mtlOverride)
+        public int WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ, string mtlOverride, bool ebo)
         {
             double tileHeight = Size.YSize / gridHeight;
             double tileWidth = Size.XSize / gridWidth;
@@ -83,7 +83,7 @@ namespace CuberLib
 				ZMax = Size.ZMin + zOffset + tileDepth
 			};
 
-			return WriteObj(path, newSize, mtlOverride);
+			return WriteObj(path, newSize, mtlOverride, ebo);
         }
 
 		/// <summary>
@@ -91,13 +91,17 @@ namespace CuberLib
 		/// Typically used by WriteObjGridTile(...)
 		/// Returns number of vertices written, or 0 if nothing was written.
 		/// </summary>
-		public int WriteObj(string path, Extent boundries, string mtlOverride)
+		public int WriteObj(string path, Extent boundries, string mtlOverride, bool ebo)
         {
-            if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
-            if (File.Exists(path)) File.Delete(path);
+			string objPath = path + ".obj";
+			string eboPath = path + ".ebo";
 
-            // Build the chunk
-            List<Vertex> chunkVertexList;
+			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
+            if (File.Exists(objPath)) { File.Delete(objPath); }
+			if (ebo) { if (File.Exists(eboPath)) { File.Delete(eboPath); } }
+
+			// Build the chunk
+			List<Vertex> chunkVertexList;
             List<Face> chunkFaceList;
             List<TextureVertex> chunkTextureList;
             HashSet<Face> chunkFaceHashSet;
@@ -108,34 +112,33 @@ namespace CuberLib
             // Get all faces in this cube
             chunkFaceList = FaceList.Where(v => v.InExtent(boundries, VertexList)).ToList();
 
-            // Build a list of vertices indexes needed for these faces
-            List<int> requiredVertices = null;
-            List<int> requiredTextureVertices = null;
+			if (!chunkFaceList.Any())
+				return 0;
 
-            var tv = Task.Run(() => { requiredVertices = chunkFaceList.SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
-            var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
+            Console.WriteLine("{0} faces", chunkFaceList.Count);
 
-            tv.Wait();
+            WriteObjFormattedFile(objPath, mtlOverride, chunkFaceList);
 
-            // Abort if we would be writing an empty file
-            // no need to wait on texture vertices;
-            if (!requiredVertices.Any())
-            {
-                return 0;
-            }
-            ttv.Wait();
+			if (ebo)
+			{
+				WriteEboFormattedFile(eboPath, mtlOverride, chunkFaceList);
+			}
 
-            Console.WriteLine("{0} vertices and {1} texture vertices", requiredVertices.Count, requiredTextureVertices.Count);
-
-            WriteObjFormattedFile(path, mtlOverride, chunkFaceList, requiredVertices, requiredTextureVertices);
-            WriteEboFormattedFile(path, mtlOverride, chunkFaceList, requiredVertices, requiredTextureVertices);
-
-            return requiredVertices.Count();
+            return chunkFaceList.Count;
         }
 
-        private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, List<int> requiredVertices, List<int> requiredTextureVertices)
+        private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList)
         {
-            using (var outStream = File.OpenWrite(path))
+			// Build a list of vertices indexes needed for these faces
+			List<int> requiredVertices = null;
+			List<int> requiredTextureVertices = null;
+
+			var tv = Task.Run(() => { requiredVertices = chunkFaceList.SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
+			var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
+
+			Task.WaitAll(new Task[] { tv, ttv });			
+
+			using (var outStream = File.OpenWrite(path))
             using (var writer = new StreamWriter(outStream))
             {
 
@@ -164,7 +167,7 @@ namespace CuberLib
                 });
 
 
-                //Write each texture vertex and update faces
+                // Write each texture vertex and update faces
                 int newTextureVertexIndex = 0;
 
                 Parallel.ForEach(requiredTextureVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
@@ -181,25 +184,82 @@ namespace CuberLib
             }
         }
 
-        private void WriteEboFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, List<int> requiredVertices, List<int> requiredTextureVertices)
+        private void WriteEboFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList)
         {
-            using (var outStream = File.OpenWrite(path + ".ebo"))
+            using (var outStream = File.OpenWrite(path))
             using (var writer = new BinaryWriter(outStream))
             {
-                foreach (var f in chunkFaceList)
-                {
-                    writer.Write('F');
+				writer.Write((ushort)chunkFaceList.Count); 
 
-                    for (int i = 0; i < f.VertexIndexList.Length; i++)
+				for (int fi = 0; fi < chunkFaceList.Count; fi++)
+				{
+					if (chunkFaceList[fi].VertexIndexList.Count() != 3) throw new Exception("WTF! " + chunkFaceList[fi].VertexIndexList.Count());
+
+					// Hardcode for triangles in this format, since that is what the client supports
+					for (int i = 0; i < 3; i++)
                     {
-                        writer.Write(VertexList[f.VertexIndexList[i]].X);
-                        writer.Write(VertexList[f.VertexIndexList[i]].Y);
-                        writer.Write(VertexList[f.VertexIndexList[i]].Z);
-                        writer.Write(TextureList[f.TextureVertexIndexList[i]].X);
-                        writer.Write(TextureList[f.TextureVertexIndexList[i]].Y);
+						// Have we written this vertex before? If so write a pointer to its index
+						int desiredVertexIndex = chunkFaceList[fi].VertexIndexList[i];
+						int desiredTextureIndex = chunkFaceList[fi].TextureVertexIndexList[i];
+						var preexisting = chunkFaceList.Take(fi).Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
+
+						if (preexisting.Any())
+						{
+							var doubleMatch = preexisting.Where(f => f.TextureVertexIndexList.Contains(desiredTextureIndex));
+
+							if (doubleMatch.Any())
+							{
+								var face = doubleMatch.First();
+
+								// The total number of vertices prior to this face
+								int index = (chunkFaceList.IndexOf(face)) * 3;
+
+								// Now add the delta to index into this triangle correctly
+								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
+								index += indexInFace;
+
+								if (face.TextureVertexIndexList[indexInFace] != chunkFaceList[fi].TextureVertexIndexList[i])
+								{
+									Console.WriteLine("Danger! Danger Will Ronbinson!");
+								}
+
+								// write the back reference instead of the vertex
+								writer.Write((byte)0);
+								writer.Write((UInt32)index);
+							}
+							else
+							{
+								var face = preexisting.First();
+
+								// The total number of vertices prior to this face
+								int index = (chunkFaceList.IndexOf(face)) * 3;
+
+								// Now add the delta to index into this triangle correctly
+								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
+								index += indexInFace;
+								
+								// write the back reference instead of the vertex
+								writer.Write((byte)64);
+								writer.Write((UInt32)index);
+
+								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].X);
+								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].Y);
+							}							
+						}
+						else
+						{
+							writer.Write((byte)255);
+							writer.Write((float)VertexList[desiredVertexIndex-1].X);
+							writer.Write((float)VertexList[desiredVertexIndex-1].Y);
+							writer.Write((float)VertexList[desiredVertexIndex-1].Z);
+
+							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i]-1].X);
+							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i]-1].Y);
+						}
                     }
                 }
-            }
+				writer.Write((byte)128);
+			}
         }
 
 

@@ -38,7 +38,7 @@ namespace Cuber
 					else if (Path.GetExtension(path).ToUpper().EndsWith("OBJ"))
 					{
 						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-						manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)), opt.MtlOverride);
+						manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)), opt.MtlOverride, opt.Ebo);
 					}
 					else
 					{
@@ -79,6 +79,10 @@ namespace Cuber
 		[NamedArgument('m', "mtl", Action = ParseAction.Store,
 			Description = "Override the MTL field in output obj files. e.g. -z model.mtl")]
 		public string MtlOverride { get; set; }
+
+		[NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
+			Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
+		public bool Ebo { get; set; }
 
 		[PositionalArgument(0, MetaVar = "OUT",
 			Description = "Output folder")]

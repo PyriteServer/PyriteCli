@@ -110,18 +110,5 @@ namespace CuberLib.Types
 
             return b.ToString();
         }
-
-        public string ToString(List<TextureVertex> textureList, List<Vertex> vertexList)
-        {
-            StringBuilder b = new StringBuilder();
-            b.Append("f");
-
-            for (int i = 0; i < VertexIndexList.Count(); i++)
-            {
-                b.AppendFormat(" {0}/{1}", vertexList[VertexIndexList[i]], textureList[TextureVertexIndexList[i]]);
-            }
-
-            return b.ToString();
-        }
     }
 }
