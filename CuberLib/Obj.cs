@@ -117,12 +117,13 @@ namespace CuberLib
 
             Console.WriteLine("{0} faces", chunkFaceList.Count);
 
-            WriteObjFormattedFile(objPath, mtlOverride, chunkFaceList);
 
 			if (ebo)
 			{
 				WriteEboFormattedFile(eboPath, mtlOverride, chunkFaceList);
 			}
+
+            WriteObjFormattedFile(objPath, mtlOverride, chunkFaceList);
 
             return chunkFaceList.Count;
         }
@@ -193,8 +194,6 @@ namespace CuberLib
 
 				for (int fi = 0; fi < chunkFaceList.Count; fi++)
 				{
-					if (chunkFaceList[fi].VertexIndexList.Count() != 3) throw new Exception("WTF! " + chunkFaceList[fi].VertexIndexList.Count());
-
 					// Hardcode for triangles in this format, since that is what the client supports
 					for (int i = 0; i < 3; i++)
                     {
