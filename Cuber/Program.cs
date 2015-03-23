@@ -37,8 +37,21 @@ namespace Cuber
 					}
 					else if (Path.GetExtension(path).ToUpper().EndsWith("OBJ"))
 					{
-						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-						manager.GenerateCubes(Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path)), opt.MtlOverride, opt.Ebo);
+						// Generate subfolders named after input file
+						// if multiple input files are provided
+						string outputPath;
+						if (opt.Input.Count == 1)
+						{
+							outputPath = opt.OutputPath;
+						}
+						else
+						{
+							outputPath = Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path));
+						}
+
+                        CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
+						
+						manager.GenerateCubes(outputPath, opt.MtlOverride, opt.Ebo);
 					}
 					else
 					{
