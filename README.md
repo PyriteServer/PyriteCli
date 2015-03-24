@@ -1,4 +1,19 @@
-# cuber
-A tool for slicing 3D mesh files into smaller cubes
+# Cuber
+### A tool for slicing meshes
 
-Under early development.  Check back later.
+*Cuber is under heavy development as part of a pre-processing pipeline for CubeServer.  You are welcome to use it now, but you should expect issues*
+
+#### Features
+
+* Parses Wavefront OBJ formatted mesh files
+* Slices source mesh in three dimensions to create a set of smaller, valid OBJ files of any size
+* Leverages all available CPU cores
+* Works on very large meshes (tens of millions of vertices)
+* Support for a custom binary output format (.ebo) designed for streaming mesh data
+* Various miscellaneous features to support CubeServer
+
+
+
+#### Limitations
+* Currently supports V, VT, F, and MTLLIB commands in OBJ files
+* Only tested on meshes with triangular faces

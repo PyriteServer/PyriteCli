@@ -107,10 +107,10 @@ namespace CuberLib
             HashSet<Face> chunkFaceHashSet;
 
             // Revert all vertices in case we previously changed their indexes
-            FaceList.ForEach(f => f.RevertVertices());
+            FaceList.AsParallel().ForAll(f => f.RevertVertices());
 
             // Get all faces in this cube
-            chunkFaceList = FaceList.Where(v => v.InExtent(boundries, VertexList)).ToList();
+            chunkFaceList = FaceList.AsParallel().Where(v => v.InExtent(boundries, VertexList)).ToList();
 
 			if (!chunkFaceList.Any())
 				return 0;
@@ -134,8 +134,8 @@ namespace CuberLib
 			List<int> requiredVertices = null;
 			List<int> requiredTextureVertices = null;
 
-			var tv = Task.Run(() => { requiredVertices = chunkFaceList.SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
-			var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
+			var tv = Task.Run(() => { requiredVertices = chunkFaceList.AsParallel().SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
+			var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
 
 			Task.WaitAll(new Task[] { tv, ttv });			
 
@@ -196,11 +196,11 @@ namespace CuberLib
 				{
 					// Hardcode for triangles in this format, since that is what the client supports
 					for (int i = 0; i < 3; i++)
-                    {
+					{
 						// Have we written this vertex before? If so write a pointer to its index
 						int desiredVertexIndex = chunkFaceList[fi].VertexIndexList[i];
 						int desiredTextureIndex = chunkFaceList[fi].TextureVertexIndexList[i];
-						var preexisting = chunkFaceList.Take(fi).Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
+						var preexisting = chunkFaceList.AsParallel().Take(fi).Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
 
 						if (preexisting.Any())
 						{
@@ -225,6 +225,7 @@ namespace CuberLib
 								// write the back reference instead of the vertex
 								writer.Write((byte)0);
 								writer.Write((UInt32)index);
+								
 							}
 							else
 							{
@@ -236,39 +237,39 @@ namespace CuberLib
 								// Now add the delta to index into this triangle correctly
 								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
 								index += indexInFace;
-								
+
 								// write the back reference instead of the vertex
 								writer.Write((byte)64);
 								writer.Write((UInt32)index);
 
 								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].X);
-								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].Y);
-							}							
+								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].Y);							
+
+							}
 						}
 						else
 						{
 							writer.Write((byte)255);
-							writer.Write((float)VertexList[desiredVertexIndex-1].X);
-							writer.Write((float)VertexList[desiredVertexIndex-1].Y);
-							writer.Write((float)VertexList[desiredVertexIndex-1].Z);
+							writer.Write((float)VertexList[desiredVertexIndex - 1].X);
+							writer.Write((float)VertexList[desiredVertexIndex - 1].Y);
+							writer.Write((float)VertexList[desiredVertexIndex - 1].Z);
 
-							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i]-1].X);
-							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i]-1].Y);
+							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].X);
+							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].Y);
 						}
-                    }
-                }
+					}
+				}
 				writer.Write((byte)128);
 			}
         }
 
-
-        /// <summary>
-        /// Helper to make determining the index of the written vertex
-        /// and the stream output thread safe.  
-        /// We block on writing the line, and incrementing the index.
-        /// Has no real performance impact as most of the time is spent traversing arrays.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+		/// <summary>
+		/// Helper to make determining the index of the written vertex
+		/// and the stream output thread safe.  
+		/// We block on writing the line, and incrementing the index.
+		/// Has no real performance impact as most of the time is spent traversing arrays.
+		/// </summary>
+		[MethodImpl(MethodImplOptions.Synchronized)]
 		private int WriteVertexWithNewIndex<T>(T item, ref int index, StreamWriter writer)
         {
 			writer.WriteLine(item);
