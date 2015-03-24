@@ -17,3 +17,8 @@
 #### Limitations
 * Currently supports V, VT, F, and MTLLIB commands in OBJ files
 * Only tested on meshes with triangular faces
+
+
+
+#### Usage
+```cuber --help```
