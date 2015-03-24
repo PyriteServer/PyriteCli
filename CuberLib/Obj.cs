@@ -63,7 +63,7 @@ namespace CuberLib
 		/// <param name="gridWidth">X size of grid</param>
 		/// <param name="tileX">Zero based X index of tile</param>
 		/// <param name="tileY">Zero based Y index of tile</param>
-        public int WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ, string mtlOverride, bool ebo)
+        public int WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ, SlicingOptions options)
         {
             double tileHeight = Size.YSize / gridHeight;
             double tileWidth = Size.XSize / gridWidth;
@@ -83,7 +83,7 @@ namespace CuberLib
 				ZMax = Size.ZMin + zOffset + tileDepth
 			};
 
-			return WriteObj(path, newSize, mtlOverride, ebo);
+			return WriteObj(path, newSize, options);
         }
 
 		/// <summary>
@@ -91,39 +91,56 @@ namespace CuberLib
 		/// Typically used by WriteObjGridTile(...)
 		/// Returns number of vertices written, or 0 if nothing was written.
 		/// </summary>
-		public int WriteObj(string path, Extent boundries, string mtlOverride, bool ebo)
+		public int WriteObj(string path, Extent boundries, SlicingOptions options)
         {
 			string objPath = path + ".obj";
 			string eboPath = path + ".ebo";
+			bool objRequiresDelete = false, eboRequiresDelete = false;
 
-			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
-            if (File.Exists(objPath)) { File.Delete(objPath); }
-			if (ebo) { if (File.Exists(eboPath)) { File.Delete(eboPath); } }
+			// Delete files or handle resume if the required ones already exist
+			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }						
 
-			// Build the chunk
-			List<Vertex> chunkVertexList;
-            List<Face> chunkFaceList;
-            List<TextureVertex> chunkTextureList;
-            HashSet<Face> chunkFaceHashSet;
+			if (options.GenerateObj)
+			{
+				objRequiresDelete = File.Exists(objPath);
+			}
+
+			if (options.GenerateEbo)
+			{
+				eboRequiresDelete = File.Exists(eboPath);
+			}
+
+			if (options.AttemptResume && objRequiresDelete == options.GenerateObj && eboRequiresDelete == options.GenerateEbo)
+			{
+				return 1;
+			}
+			else
+			{
+				if (objRequiresDelete) File.Delete(objPath);
+				if (eboRequiresDelete) File.Delete(eboPath);
+			}
 
             // Revert all vertices in case we previously changed their indexes
             FaceList.AsParallel().ForAll(f => f.RevertVertices());
 
-            // Get all faces in this cube
-            chunkFaceList = FaceList.AsParallel().Where(v => v.InExtent(boundries, VertexList)).ToList();
+			// Get all faces in this cube
+			List<Face> chunkFaceList;
+			chunkFaceList = FaceList.AsParallel().Where(v => v.InExtent(boundries, VertexList)).ToList();
 
 			if (!chunkFaceList.Any())
 				return 0;
 
             Console.WriteLine("{0} faces", chunkFaceList.Count);
 
-
-			if (ebo)
+			if (options.GenerateEbo)
 			{
-				WriteEboFormattedFile(eboPath, mtlOverride, chunkFaceList);
+				WriteEboFormattedFile(eboPath, options.OverrideMtl, chunkFaceList);
 			}
 
-            WriteObjFormattedFile(objPath, mtlOverride, chunkFaceList);
+			if (options.GenerateObj)
+			{
+				WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList);
+			}
 
             return chunkFaceList.Count;
         }
@@ -200,7 +217,7 @@ namespace CuberLib
 						// Have we written this vertex before? If so write a pointer to its index
 						int desiredVertexIndex = chunkFaceList[fi].VertexIndexList[i];
 						int desiredTextureIndex = chunkFaceList[fi].TextureVertexIndexList[i];
-						var preexisting = chunkFaceList.AsParallel().Take(fi).Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
+						var preexisting = chunkFaceList.Take(fi).AsParallel().Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
 
 						if (preexisting.Any())
 						{

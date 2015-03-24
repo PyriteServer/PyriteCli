@@ -49,9 +49,16 @@ namespace Cuber
 							outputPath = Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path));
 						}
 
-                        CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-						
-						manager.GenerateCubes(outputPath, opt.MtlOverride, opt.Ebo);
+						var options = new SlicingOptions
+						{
+							OverrideMtl = opt.MtlOverride,
+							GenerateEbo = opt.Ebo,
+							AttemptResume = opt.Resume,
+							GenerateObj = true
+						};
+
+						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);						
+						manager.GenerateCubes(outputPath, options);
 					}
 					else
 					{
@@ -96,6 +103,10 @@ namespace Cuber
 		[NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
 			Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
 		public bool Ebo { get; set; }
+
+		[NamedArgument('r', "resume", Action = ParseAction.StoreTrue,
+			Description = "Existing files are not overwritten, but instead skipped")]
+		public bool Resume { get; set; }
 
 		[PositionalArgument(0, MetaVar = "OUT",
 			Description = "Output folder")]

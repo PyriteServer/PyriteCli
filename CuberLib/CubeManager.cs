@@ -33,7 +33,7 @@ namespace CuberLib
 			Console.WriteLine("Memory Used: " + GC.GetTotalMemory(true) / 1024 / 1024 + "mb");
 		}
 
-		public void GenerateCubes(string outputPath, string mtlOverride, bool ebo)
+		public void GenerateCubes(string outputPath, SlicingOptions options)
 		{
 			CubeMetadata metadata = new CubeMetadata(size) { Extents = ObjInstance.Size };
 
@@ -45,8 +45,8 @@ namespace CuberLib
 					for (int z = 0; z < size.Z; z++)
 					{
 						Console.WriteLine("Processing cube [{0}, {1}, {2}]", x, y, z);
-						string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));
-						int vertexCount = ObjInstance.WriteObjGridTile(fileOutPath, size.X, size.Y, size.Z, x, y, z, mtlOverride, ebo);
+						string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));				
+						int vertexCount = ObjInstance.WriteObjGridTile(fileOutPath, size.X, size.Y, size.Z, x, y, z, options);
 						metadata.CubeExists[x, y, z] = vertexCount > 0;
                     }
 				}
