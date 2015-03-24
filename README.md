@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/nb5v8as084fpe45v?svg=true)](https://ci.appveyor.com/project/stefangordon/cuber)
+
 # Cuber
 ### A tool for slicing meshes
 
