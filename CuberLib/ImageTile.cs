@@ -29,7 +29,9 @@ namespace CuberLib
             int tileWidth = xMax / size.Width;
             int tileHeight = yMax / size.Height;
 
-            for (int x = 0; x < size.Width; x++)
+			if (!Directory.Exists(outputPath)) { Directory.CreateDirectory(outputPath); }
+
+			for (int x = 0; x < size.Width; x++)
             {
                 for (int y = 0; y < size.Height; y++)
                 {
