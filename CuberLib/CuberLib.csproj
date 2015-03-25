@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="ImageTile.cs" />
     <Compile Include="SlicingOptions.cs" />
+    <Compile Include="Texture.cs" />
     <Compile Include="XzyPoint.cs" />
     <Compile Include="Extent.cs" />
     <Compile Include="CubeManager.cs" />
