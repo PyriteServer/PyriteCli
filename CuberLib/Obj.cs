@@ -61,26 +61,26 @@ namespace CuberLib
 		/// <param name="path">Output path</param>
 		/// <param name="gridHeight">Y size of grid</param>
 		/// <param name="gridWidth">X size of grid</param>
-		/// <param name="tileX">Zero based X index of tile</param>
-		/// <param name="tileY">Zero based Y index of tile</param>
-        public int WriteObjGridTile(string path, int gridHeight, int gridWidth, int gridDepth, int tileX, int tileY, int tileZ, SlicingOptions options)
+		/// <param name="cubeX">Zero based X index of cube</param>
+		/// <param name="cubeY">Zero based Y index of cube</param>
+        public int WriteSpecificCube(string path, int gridHeight, int gridWidth, int gridDepth, int cubeX, int cubeY, int cubeZ, SlicingOptions options)
         {
-            double tileHeight = Size.YSize / gridHeight;
-            double tileWidth = Size.XSize / gridWidth;
-			double tileDepth = Size.ZSize / gridDepth;
+            double cubeHeight = Size.YSize / gridHeight;
+            double cubeWidth = Size.XSize / gridWidth;
+			double cubeDepth = Size.ZSize / gridDepth;
 
-			double yOffset = tileHeight * tileY;
-            double xOffset = tileWidth * tileX;
-			double zOffset = tileDepth * tileZ;
+			double yOffset = cubeHeight * cubeY;
+            double xOffset = cubeWidth * cubeX;
+			double zOffset = cubeDepth * cubeZ;
 
 			Extent newSize = new Extent
             {
                 XMin = Size.XMin + xOffset,
                 YMin = Size.YMin + yOffset,
 				ZMin = Size.ZMin + zOffset,				
-                XMax = Size.XMin + xOffset + tileWidth,
-                YMax = Size.YMin + yOffset + tileHeight,
-				ZMax = Size.ZMin + zOffset + tileDepth
+                XMax = Size.XMin + xOffset + cubeWidth,
+                YMax = Size.YMin + yOffset + cubeHeight,
+				ZMax = Size.ZMin + zOffset + cubeDepth
 			};
 
 			return WriteObj(path, newSize, options);
