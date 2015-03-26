@@ -75,21 +75,20 @@ namespace CuberLib
 
 			af.BlobCounter bc = new af.BlobCounter();
 			bc.ProcessImage(output);
-			Rectangle[] rects = bc.GetObjectsRectangles();
+			Rectangle[] sourceRects = bc.GetObjectsRectangles();
+			Rectangle[] destRects = PackTextures(sourceRects, 1024, 1024, 8192);
 
-			var orderedRects = rects.OrderBy(r => r.Size.Height);
+			int width = destRects.Max<Rectangle, int>(r => r.X + r.Width);
+			int height = destRects.Max<Rectangle, int>(r => r.Y + r.Height);
 
-			// Try out binpackr
-			// TODO
-
-			Bitmap packed = new Bitmap(4096, 4096);
+			Bitmap packed = new Bitmap(width, height);
 
 			using (Graphics packedGraphics = Graphics.FromImage(packed))
 			{
-				//foreach (bin.Bin rect in binList)
-				//{
-    //                packedGraphics.DrawImage(output, rect.DrawingRectangle, rect.OriginalDrawingRectangle, GraphicsUnit.Pixel);		
-				//}
+				for (int i = 0; i < sourceRects.Length; i++)
+				{
+					packedGraphics.DrawImage(output, destRects[i], sourceRects[i], GraphicsUnit.Pixel);
+				}
 			}
 
 			// write output files
@@ -102,6 +101,27 @@ namespace CuberLib
 			output.Dispose();
 			original.Dispose();
 		}
+
+		private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
+		{
+			if (width > maxSize || height > maxSize) return null;			
+
+			MaxRectanglesBinPack bp = new MaxRectanglesBinPack(width, height, false);
+			Rectangle[] rects = new Rectangle[source.Length];
+
+			for (int i = 0; i < source.Length; i++)
+			{
+				Rectangle rect = bp.Insert(source[i].Width, source[i].Height, MaxRectanglesBinPack.FreeRectangleChoiceHeuristic.RectangleBestAreaFit);
+				if (rect.Width == 0 || rect.Height == 0)
+				{
+					return PackTextures(source, width * (width <= height ? 2 : 1), height * (height < width ? 2 : 1), maxSize);
+				}
+				rects[i] = rect;
+			}
+
+			return rects;
+		}
+
 
 		private void CopyPolygon(Image source, Graphics dest, PointF[] sourcePoly, PointF[] destPoly)
 		{

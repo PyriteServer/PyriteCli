@@ -88,40 +88,6 @@ public class MaxRectanglesBinPack
 		return newNode;
 	}
 
-	public void Insert(List<Rectangle> Rectangles, List<Rectangle> dst, FreeRectangleChoiceHeuristic method)
-	{
-		dst.Clear();
-
-		while (Rectangles.Count > 0)
-		{
-			int bestScore1 = int.MaxValue;
-			int bestScore2 = int.MaxValue;
-			int bestRectangleIndex = -1;
-			Rectangle bestNode = new Rectangle();
-
-			for (int i = 0; i < Rectangles.Count; ++i)
-			{
-				int score1 = 0;
-				int score2 = 0;
-				Rectangle newNode = ScoreRectangle((int)Rectangles[i].Width, (int)Rectangles[i].Height, method, ref score1, ref score2);
-
-				if (score1 < bestScore1 || (score1 == bestScore1 && score2 < bestScore2))
-				{
-					bestScore1 = score1;
-					bestScore2 = score2;
-					bestNode = newNode;
-					bestRectangleIndex = i;
-				}
-			}
-
-			if (bestRectangleIndex == -1)
-				return;
-
-			PlaceRectangle(bestNode);
-			Rectangles.RemoveAt(bestRectangleIndex);
-		}
-	}
-
 	void PlaceRectangle(Rectangle node)
 	{
 		int numRectangleanglesToProcess = freeRectangles.Count;
