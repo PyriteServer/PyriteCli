@@ -9,9 +9,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CuberLib", "CuberLib\CuberL
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FF7E6DAB-7D1B-49DF-9AE2-1C0F8CE0AF1D}"
 	ProjectSection(SolutionItems) = preProject
-		sample\santanarow_triangle_model_1_1.jpg = sample\santanarow_triangle_model_1_1.jpg
-		sample\santanarow_triangle_model_1_1.mtl = sample\santanarow_triangle_model_1_1.mtl
-		sample\santanarow_triangle_model_1_1.obj = sample\santanarow_triangle_model_1_1.obj
+		sample\test.jpg = sample\test.jpg
+		sample\test.mtl = sample\test.mtl
+		sample\test.obj = sample\test.obj
 	EndProjectSection
 EndProject
 Global

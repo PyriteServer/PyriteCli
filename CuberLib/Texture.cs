@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using af = AForge.Imaging;
 using CuberLib.Types;
 
 namespace CuberLib
@@ -44,7 +45,7 @@ namespace CuberLib
 
 			// Load original texture and initiate new texture
 			Image original = Image.FromFile(texturePath);
-			Image output = new Bitmap(original.Width, original.Height);
+			Bitmap output = new Bitmap(original.Width, original.Height);
 			using (Graphics destGraphics = Graphics.FromImage(output))
 			{
 
@@ -66,12 +67,38 @@ namespace CuberLib
 						Console.WriteLine("{0} of {1}", i, triangles.Count);
 					}
 				}
+
+				destGraphics.ResetClip();		
 			}
+
+			// Identify blob rectangles
+
+			af.BlobCounter bc = new af.BlobCounter();
+			bc.ProcessImage(output);
+			Rectangle[] rects = bc.GetObjectsRectangles();
+
+			var orderedRects = rects.OrderBy(r => r.Size.Height);
+
+			// Try out binpackr
+			// TODO
+
+			Bitmap packed = new Bitmap(4096, 4096);
+
+			using (Graphics packedGraphics = Graphics.FromImage(packed))
+			{
+				//foreach (bin.Bin rect in binList)
+				//{
+    //                packedGraphics.DrawImage(output, rect.DrawingRectangle, rect.OriginalDrawingRectangle, GraphicsUnit.Pixel);		
+				//}
+			}
+
+			// write output files
 
 			string path = Path.Combine(outputPath, "output.jpg");
 			if (File.Exists(path)) File.Delete(path);
-            output.Save(path, ImageFormat.Jpeg);
+            packed.Save(path, ImageFormat.Jpeg);
 
+			packed.Dispose();
 			output.Dispose();
 			original.Dispose();
 		}
