@@ -27,17 +27,6 @@ namespace Cuber
 			{
 				opt = CliParser.Parse<Options>(args);
 
-				// Testing!!!
-				if (opt.DebugTest)
-				{
-					CubeManager manager = new CubeManager(opt.Input[0], opt.xSize, opt.ySize, opt.zSize);
-					Texture texture = new Texture(manager.ObjInstance);
-					texture.NaiveTriangleRepack(opt.Input[1], opt.OutputPath);
-					return;
-				}
-
-				// End Testing
-
 				foreach (string path in opt.Input)
 				{
 					// Check if we are processing an image or a mesh

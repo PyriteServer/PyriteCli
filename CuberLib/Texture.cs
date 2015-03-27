@@ -15,35 +15,63 @@ namespace CuberLib
 	public class Texture
 	{
 		private Obj obj;
-		private Bitmap[,] texture;
 
 		public Texture(Obj obj)
 		{
 			this.obj = obj;
 		}
 
-		public void NaiveTriangleRepack(string texturePath, string outputPath)
+		// The z axis is collapsed for the purpose of texture slicing.
+		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
+		public void GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY)
 		{
-			
-			List<Face> chunkFaceList;
-			chunkFaceList = obj.FaceList.AsParallel().Where(v => v.InExtent(
-				new Extent()
-				{
-					XMax = obj.Size.XMax - (obj.Size.XSize / 2),
-					YMax = obj.Size.YMax - (obj.Size.YSize / 2),
-					ZMax = obj.Size.ZMax,
-					XMin = obj.Size.XMin,
-					YMin = obj.Size.YMin,
-					ZMin = obj.Size.ZMin
-				}, obj.VertexList)).ToList();
+			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY);
 
-			// get list of UV triangles (maybe not distinct?)
-			var triangles = chunkFaceList.Select(f => new Tuple<TextureVertex, TextureVertex, TextureVertex>(
-				obj.TextureList[f.TextureVertexIndexList[0] - 1],
-				obj.TextureList[f.TextureVertexIndexList[1] - 1],
-				obj.TextureList[f.TextureVertexIndexList[2] - 1])).ToList();
+			// get list of UV triangles
+			var triangles = GetUVTriangles(chunkFaceList);
 
 			// Load original texture and initiate new texture
+			using (Bitmap output = GenerateSparseTexture(texturePath, triangles))
+			{
+				// Identify blob rectangles
+				Rectangle[] sourceRects = FindBlobRectangles(output);
+
+				// Bin pack rects, starting with 1024x1024 and growing to a maximum 8192.
+				Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 8192);
+
+				// Identify the cropped size of our new texture
+				int width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
+				int height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
+
+				// Build the new bin packed and cropped texture
+				using (Bitmap packed = new Bitmap(width, height))
+				{
+					using (Graphics packedGraphics = Graphics.FromImage(packed))
+					{
+						for (int i = 0; i < sourceRects.Length; i++)
+						{
+							packedGraphics.DrawImage(output, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
+						}
+					}
+
+					// Write to disk
+					string path = Path.Combine(outputPath, "output.jpg");
+					if (File.Exists(path)) File.Delete(path);
+					packed.Save(path, ImageFormat.Jpeg);
+				}
+			}
+		}
+
+		private static Rectangle[] FindBlobRectangles(Bitmap output)
+		{
+			af.BlobCounter bc = new af.BlobCounter();
+			bc.ProcessImage(output);
+			Rectangle[] sourceRects = bc.GetObjectsRectangles();
+			return sourceRects;
+		}
+
+		private Bitmap GenerateSparseTexture(string texturePath, List<Tuple<TextureVertex, TextureVertex, TextureVertex>> triangles)
+		{
 			Image original = Image.FromFile(texturePath);
 			Bitmap output = new Bitmap(original.Width, original.Height);
 			using (Graphics destGraphics = Graphics.FromImage(output))
@@ -68,38 +96,42 @@ namespace CuberLib
 					}
 				}
 
-				destGraphics.ResetClip();		
+				destGraphics.ResetClip();
 			}
 
-			// Identify blob rectangles
-
-			af.BlobCounter bc = new af.BlobCounter();
-			bc.ProcessImage(output);
-			Rectangle[] sourceRects = bc.GetObjectsRectangles();
-			Rectangle[] destRects = PackTextures(sourceRects, 1024, 1024, 8192);
-
-			int width = destRects.Max<Rectangle, int>(r => r.X + r.Width);
-			int height = destRects.Max<Rectangle, int>(r => r.Y + r.Height);
-
-			Bitmap packed = new Bitmap(width, height);
-
-			using (Graphics packedGraphics = Graphics.FromImage(packed))
-			{
-				for (int i = 0; i < sourceRects.Length; i++)
-				{
-					packedGraphics.DrawImage(output, destRects[i], sourceRects[i], GraphicsUnit.Pixel);
-				}
-			}
-
-			// write output files
-
-			string path = Path.Combine(outputPath, "output.jpg");
-			if (File.Exists(path)) File.Delete(path);
-            packed.Save(path, ImageFormat.Jpeg);
-
-			packed.Dispose();
-			output.Dispose();
 			original.Dispose();
+			return output;
+		}
+
+		private List<Tuple<TextureVertex, TextureVertex, TextureVertex>> GetUVTriangles(List<Face> chunkFaceList)
+		{
+			return chunkFaceList.Select(f => new Tuple<TextureVertex, TextureVertex, TextureVertex>(
+							obj.TextureList[f.TextureVertexIndexList[0] - 1],
+							obj.TextureList[f.TextureVertexIndexList[1] - 1],
+							obj.TextureList[f.TextureVertexIndexList[2] - 1])).ToList();
+		}
+
+		private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY)
+		{
+			double tileHeight = obj.Size.YSize / gridHeight;
+			double tileWidth = obj.Size.XSize / gridWidth;
+
+			double yOffset = tileHeight * tileY;
+			double xOffset = tileWidth * tileX;
+
+			Extent newSize = new Extent
+			{
+				XMin = obj.Size.XMin + xOffset,
+				YMin = obj.Size.YMin + yOffset,
+				ZMin = obj.Size.ZMin,
+				XMax = obj.Size.XMin + xOffset + tileWidth,
+				YMax = obj.Size.YMin + yOffset + tileHeight,
+				ZMax = obj.Size.ZMax
+			};
+
+			List<Face> chunkFaceList;
+			chunkFaceList = obj.FaceList.AsParallel().Where(v => v.InExtent(newSize, obj.VertexList)).ToList();
+			return chunkFaceList;
 		}
 
 		private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
