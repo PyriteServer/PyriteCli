@@ -40,11 +40,16 @@ namespace CuberLib.Types
             Y = y;
         }
 
-        // HACKHACK not implemented... obviously
-        public bool InExtent(Extent extent)
+        public bool InRectangleTransform(RectangleTransform transform)
         {
-            return true;
+			return transform.ContainsPoint(X, Y);
         }
+
+		public void Transform(RectangleTransform transform)
+		{
+			X = X + transform.OffsetX;
+			Y = 1-(1-Y + transform.OffsetY);
+		}
 
         public override string ToString()
         {
