@@ -12,5 +12,10 @@ namespace CuberLib
 		public bool GenerateEbo { get; set; }
 		public bool GenerateObj { get; set; }
 		public bool AttemptResume { get; set; }
+		public string Texture { get; set; }
+		public int TextureSliceX { get; set; }
+		public int TextureSliceY { get; set; }
+		public float TextureScale { get; set; }
+		public Dictionary<Extent, RectangleTransform[]> UVTransforms { get; set; }
 	}
 }
