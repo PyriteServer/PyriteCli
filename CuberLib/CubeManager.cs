@@ -37,20 +37,21 @@ namespace CuberLib
 		{
 			CubeMetadata metadata = new CubeMetadata(size) { Extents = ObjInstance.Size };
 
-			// Generate some tiles
-			for (int x = 0; x < size.X; x++)
+			// If appropriate, generate textures and save transforms first
+			if (!string.IsNullOrEmpty(options.Texture))
 			{
-				for (int y = 0; y < size.Y; y++)
-				{
-					for (int z = 0; z < size.Z; z++)
-					{
-						Console.WriteLine("Processing cube [{0}, {1}, {2}]", x, y, z);
-						string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));				
-						int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, size.X, size.Y, size.Z, x, y, z, options);
-						metadata.CubeExists[x, y, z] = vertexCount > 0;
-                    }
-				}
+				options.UVTransforms = GenerateTextures(outputPath, options);
+				ObjInstance.TransformUVs(options);
 			}
+
+			// Generate some tiles			
+			SpatialUtilities.EnumerateSpace(size, (x, y, z) =>
+			{
+				Console.WriteLine("Processing cube [{0}, {1}, {2}]", x, y, z);
+				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));
+				int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, size.X, size.Y, size.Z, x, y, z, options);
+				metadata.CubeExists[x, y, z] = vertexCount > 0;
+			});			
 
 			// Write out some json metadata
 			string metadataPath = Path.Combine(outputPath, "metadata.json");
@@ -59,6 +60,42 @@ namespace CuberLib
 			string metadataString = JsonConvert.SerializeObject(metadata);
 			File.WriteAllText(metadataPath, metadataString);
         }
+
+		public Dictionary<Extent, RectangleTransform[]> GenerateTextures(string outputPath, SlicingOptions options)
+		{
+			if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
+
+			Console.WriteLine("Generating textures.");
+
+			Dictionary<Extent, RectangleTransform[]> transforms = new Dictionary<Extent, RectangleTransform[]>();
+
+			SpatialUtilities.EnumerateSpace(options.TextureSliceX, options.TextureSliceY, (x, y) =>
+			{
+				// Get extent
+				double tileHeight = this.ObjInstance.Size.YSize / options.TextureSliceY;
+				double tileWidth = this.ObjInstance.Size.XSize / options.TextureSliceX;
+
+				double yOffset = tileHeight * y;
+				double xOffset = tileWidth * x;
+
+				Extent extent = new Extent
+				{
+					XMin = this.ObjInstance.Size.XMin + xOffset,
+					YMin = this.ObjInstance.Size.YMin + yOffset,
+					ZMin = this.ObjInstance.Size.ZMin,
+					XMax = this.ObjInstance.Size.XMin + xOffset + tileWidth,
+					YMax = this.ObjInstance.Size.YMin + yOffset + tileHeight,
+					ZMax = this.ObjInstance.Size.ZMax
+				};
+
+				// Create texture
+				Texture t = new Texture(this.ObjInstance);
+				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
+				transforms.Add(extent, t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y));
+			});
+
+			return transforms;
+		}
 
 		// Action to show incremental file loading status
 		public static void ShowLinesLoaded(int lines)

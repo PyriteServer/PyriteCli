@@ -54,6 +54,32 @@ namespace CuberLib
             updateSize();                              
         }
 
+		public void TransformUVs(SlicingOptions options)
+		{
+			Console.WriteLine("Transforming UV points");
+
+			foreach (var extent in options.UVTransforms.Keys)
+			{
+				var uvIndices = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).SelectMany(f => f.TextureVertexIndexList);
+				foreach (int uvIndex in uvIndices)
+				{
+					int actualIndex = uvIndex - 1;
+
+					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(TextureList[actualIndex].X, 1-TextureList[actualIndex].Y));
+
+					if (transforms.Any())
+					{
+						RectangleTransform transform = transforms.First();
+						TextureList[actualIndex].Transform(transform);
+					}
+					else
+					{
+						Console.WriteLine("No transform found for UV");
+					}
+				}
+            }
+		}
+
 		/// <summary>
 		/// Write a single "cube".
 		/// Pending addition of Z-axis so that they are actually cubes.
