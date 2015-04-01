@@ -91,8 +91,10 @@ namespace CuberLib
 				// Create texture
 				Texture t = new Texture(this.ObjInstance);
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
-				transforms.Add(extent, t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y));
-			});
+
+				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y);
+				transforms.Add(extent, transform);
+            });
 
 			return transforms;
 		}

@@ -21,8 +21,12 @@ namespace CuberLib
 			this.obj = obj;
 		}
 
-		public void MarkupTextureFaces(string texturePath, string outputPath)
+		// Generates a copy of the provided texture and
+		// draws the outline of all UVW's on the image
+		public void MarkupTextureFaces(string texturePath)
 		{
+			string outputPath = texturePath + "_debug.jpg";
+
 			var triangles = GetUVTriangles(obj.FaceList);
 
 			using (Image output = Image.FromFile(texturePath))
@@ -39,6 +43,24 @@ namespace CuberLib
 							};
 						g.DrawPolygon(Pens.Red, poly); 
 					}
+				}
+
+				// Write to disk
+				if (File.Exists(outputPath)) File.Delete(outputPath);
+				if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+				output.Save(outputPath, ImageFormat.Jpeg);
+			}
+		}
+
+		public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms)
+		{
+			string outputPath = texturePath + "_transform.jpg";
+
+			using (Image output = Image.FromFile(texturePath))
+			{
+				using (Graphics g = Graphics.FromImage(output))
+				{
+					g.DrawRectangles(Pens.Red, transforms.Select(t => t.ToRectangle(output.Size)).ToArray());
 				}
 
 				// Write to disk

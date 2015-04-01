@@ -49,15 +49,19 @@ namespace Cuber
 							outputPath = Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path));
 						}
 
-						var options = new SlicingOptions
+							var options = new SlicingOptions
 						{
 							OverrideMtl = opt.MtlOverride,
 							GenerateEbo = opt.Ebo,
 							AttemptResume = opt.Resume,
-							GenerateObj = true
+							GenerateObj = true,
+							Texture = opt.Texture,
+							TextureScale = opt.scaleTexture,
+							TextureSliceX = opt.txSize,
+							TextureSliceY = opt.tySize
 						};
 
-						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);						
+						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
 						manager.GenerateCubes(outputPath, options);
 					}
 					else
@@ -96,9 +100,25 @@ namespace Cuber
 			Description = "The number of times to subdivide in the Z dimension.  Default 10.")]
 		public int zSize { get; set; }
 
+		[NamedArgument('u', "texturex", Action = ParseAction.Store,
+			Description = "The number of times to subdivide texture in the X dimension. Default 4.")]
+		public int txSize { get; set; }
+
+		[NamedArgument('v', "texturey", Action = ParseAction.Store,
+			Description = "The number of times to subdivide texture in the Y dimension. Default 4.")]
+		public int tySize { get; set; }
+
+		[NamedArgument('s', "scaletexture", Action = ParseAction.Store,
+			Description = "A number between 0 and 1 telling Cuber how to resize/scale the texture when using -t.  Default 1.")]
+		public float scaleTexture { get; set; }
+
 		[NamedArgument('m', "mtl", Action = ParseAction.Store,
 			Description = "Override the MTL field in output obj files. e.g. -z model.mtl")]
 		public string MtlOverride { get; set; }
+
+		[NamedArgument('t', "texture", Action = ParseAction.Store,
+			Description = "Include a texture to partition during cube slicing. Will rewrite UV's in output files. Requires -tx -ty parameters.")]
+		public string Texture { get; set; }
 
 		[NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
 			Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
@@ -127,6 +147,9 @@ namespace Cuber
 			xSize = 10;
 			ySize = 10;
 			zSize = 10;
+			scaleTexture = 1;
+			txSize = 4;
+			tySize = 4;
 		}
 	}
 

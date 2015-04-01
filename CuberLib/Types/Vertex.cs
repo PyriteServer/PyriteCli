@@ -19,7 +19,7 @@ namespace CuberLib.Types
 
         public int Index { get; set; }
 
-        public void LoadFromStringArray(string[] data)
+		public void LoadFromStringArray(string[] data)
         {
             if (data.Length < MinimumDataLength)
                 throw new ArgumentException("Input array must be of minimum length " + MinimumDataLength, "data");

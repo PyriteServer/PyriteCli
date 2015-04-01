@@ -18,7 +18,9 @@ namespace CuberLib.Types
 
         public int Index { get; set; }
 
-        public void LoadFromStringArray(string[] data)
+		public bool Transformed { get; set; }
+
+		public void LoadFromStringArray(string[] data)
         {
             if (data.Length < MinimumDataLength)
                 throw new ArgumentException("Input array must be of minimum length " + MinimumDataLength, "data");
@@ -47,8 +49,12 @@ namespace CuberLib.Types
 
 		public void Transform(RectangleTransform transform)
 		{
-			X = X + transform.OffsetX;
-			Y = 1-(1-Y + transform.OffsetY);
+			if (Transformed) return;
+
+			X = X - transform.OffsetX;
+			Y = 1-(1-Y - transform.OffsetY);
+
+			Transformed = true;
 		}
 
         public override string ToString()

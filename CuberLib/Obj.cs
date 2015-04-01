@@ -60,17 +60,15 @@ namespace CuberLib
 
 			foreach (var extent in options.UVTransforms.Keys)
 			{
-				var uvIndices = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).SelectMany(f => f.TextureVertexIndexList);
-				foreach (int uvIndex in uvIndices)
+				var uvIndices = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).SelectMany(f => f.TextureVertexIndexList).Distinct();
+				foreach (var uv in uvIndices.Select(i => TextureList[i-1]).Where(t => !t.Transformed))
 				{
-					int actualIndex = uvIndex - 1;
-
-					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(TextureList[actualIndex].X, 1-TextureList[actualIndex].Y));
+					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(uv.X, 1- uv.Y));
 
 					if (transforms.Any())
 					{
 						RectangleTransform transform = transforms.First();
-						TextureList[actualIndex].Transform(transform);
+						uv.Transform(transform);
 					}
 					else
 					{
