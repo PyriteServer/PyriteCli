@@ -1,8 +1,14 @@
-newmtl Textured
-Ka 1.000 1.000 1.000
-Kd 1.000 1.000 1.000
-Ks 0.000 0.000 0.000
-d 1.0
+#
+# Wavefront material file
+# Converted by Meshlab Group
+#
+
+newmtl material_0
+Ka 0.200000 0.200000 0.200000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Tr 1.000000
 illum 2
-map_Ka texture.jpg
+Ns 0.000000
 map_Kd texture.jpg
+

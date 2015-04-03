@@ -62,7 +62,16 @@ namespace Cuber
 						};
 
 						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
-						manager.GenerateCubes(outputPath, options);
+
+						if (opt.MarkupUV)
+						{
+							Texture tex = new Texture(manager.ObjInstance);
+							tex.MarkupTextureFaces(opt.Texture);
+						}
+						else
+						{
+							manager.GenerateCubes(outputPath, options);
+						}
 					}
 					else
 					{
@@ -124,9 +133,9 @@ namespace Cuber
 			Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
 		public bool Ebo { get; set; }
 
-		[NamedArgument('d', "debug", Action = ParseAction.StoreTrue,
-			Description = "flag for testing prototype features")]
-		public bool DebugTest { get; set; }
+		[NamedArgument('a', "markupUV", Action = ParseAction.StoreTrue,
+			Description = "Draws UVW's on a texture")]
+		public bool MarkupUV { get; set; }
 
 		[NamedArgument('r', "resume", Action = ParseAction.StoreTrue,
 			Description = "Existing files are not overwritten, but instead skipped")]

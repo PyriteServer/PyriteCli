@@ -63,7 +63,7 @@ namespace CuberLib
 				var uvIndices = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).SelectMany(f => f.TextureVertexIndexList).Distinct();
 				foreach (var uv in uvIndices.Select(i => TextureList[i-1]).Where(t => !t.Transformed))
 				{
-					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(uv.X, 1- uv.Y));
+					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(uv.X, uv.Y));
 
 					if (transforms.Any())
 					{

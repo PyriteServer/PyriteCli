@@ -103,12 +103,12 @@ namespace CuberLib
 				newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
 
 				// Build the new bin packed and cropped texture
-				using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height))
+				using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, output.PixelFormat))
 				{
 					using (Graphics packedGraphics = Graphics.FromImage(packed))
 					{
 						for (int i = 0; i < sourceRects.Length; i++)
-						{
+						{ 
 							packedGraphics.DrawImage(output, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
 						}
 					}
@@ -123,15 +123,20 @@ namespace CuberLib
 				var outputTransforms = new RectangleTransform[sourceRects.Length];
 				for (int i = 0; i < sourceRects.Length; i++)
 				{
+					Rectangle source = sourceRects[i];
+					Rectangle dest = destinationRects[i];
+
 					var transform = new RectangleTransform
 					{
 						// figure out total image size and convert rects to percentages
-						Top = sourceRects[i].Top / (double)originalSize.Height,
-						Bottom = sourceRects[i].Bottom / (double)originalSize.Height,
-						Left = sourceRects[i].Left / (double)originalSize.Width,
-						Right = sourceRects[i].Right / (double)originalSize.Width,
-						OffsetX = (sourceRects[i].Left / (double)originalSize.Width) - (destinationRects[i].Left / (double)newSize.Width),
-						OffsetY = (sourceRects[i].Top / (double)originalSize.Height) - (destinationRects[i].Top / (double)newSize.Height)
+						Top = 1-(source.Top / (double)originalSize.Height),
+						Bottom = 1-(source.Bottom / (double)originalSize.Height),
+						Left = source.Left / (double)originalSize.Width,
+						Right = source.Right / (double)originalSize.Width,
+						OffsetX = (source.Left / (double)originalSize.Width) - (dest.Left / (double)newSize.Width),
+						OffsetY = ((source.Top / (double)originalSize.Height) - (dest.Top / (double)newSize.Height)),
+						ScaleX =  (double)originalSize.Width / (double)newSize.Width,
+						ScaleY =  (double)originalSize.Height / (double)newSize.Height
 					};
 
 					outputTransforms[i] = transform;
@@ -141,18 +146,37 @@ namespace CuberLib
 			}
 		}
 
+		private IEnumerable<Point> FindAbandonedUVs(Rectangle[] sourceRects, List<Tuple<TextureVertex, TextureVertex, TextureVertex>> triangles, Size textureSize)
+		{
+			var vts = triangles.SelectMany(t => new TextureVertex[] { t.Item1, t.Item2, t.Item3 }).Distinct();
+			var scaledVTs = vts.Select(v => new Point((int)(v.X * textureSize.Width), (int)((1 - v.Y) * textureSize.Height)));
+
+			var abandoned = scaledVTs.Where(p => !sourceRects.Any(r => r.Contains(p)));
+
+			return abandoned;
+		}
+
 		private static Rectangle[] FindBlobRectangles(Bitmap output)
 		{
 			af.BlobCounter bc = new af.BlobCounter();
 			bc.ProcessImage(output);
 			Rectangle[] sourceRects = bc.GetObjectsRectangles();
+
+			for (int i = 0; i < sourceRects.Length; i++)
+			{
+				sourceRects[i].X -= 1;
+				sourceRects[i].Y -= 1;
+				sourceRects[i].Height += 2;
+				sourceRects[i].Width += 2;
+			}
+
 			return sourceRects;
 		}
 
 		private Bitmap GenerateSparseTexture(string texturePath, List<Tuple<TextureVertex, TextureVertex, TextureVertex>> triangles)
 		{
 			Image original = Image.FromFile(texturePath);
-			Bitmap output = new Bitmap(original.Width, original.Height);
+			Bitmap output = new Bitmap(original.Width, original.Height, original.PixelFormat);
 			using (Graphics destGraphics = Graphics.FromImage(output))
 			{
 
@@ -246,7 +270,7 @@ namespace CuberLib
 				//Draw on the Bitmap
 				dest.SetClip(gpdest);
 				dest.SetClip(gpdestWide, CombineMode.Union);
-				dest.DrawImage(source, 0, 0);
+				dest.DrawImage(source, 0, 0, source.Width, source.Height);
 			}
 		}
 	}

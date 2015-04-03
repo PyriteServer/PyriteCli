@@ -51,8 +51,11 @@ namespace CuberLib.Types
 		{
 			if (Transformed) return;
 
-			X = X - transform.OffsetX;
-			Y = 1-(1-Y - transform.OffsetY);
+			X += ((X - transform.Left) * transform.ScaleX) - (X - transform.Left);
+			Y += ((Y - transform.Top) * transform.ScaleY) - (Y - transform.Top);
+
+			X -= transform.OffsetX;
+			Y += transform.OffsetY;
 
 			Transformed = true;
 		}
