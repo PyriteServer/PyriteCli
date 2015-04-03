@@ -2,10 +2,10 @@ master | Project
 --- | ---
 [![Build status](https://ci.appveyor.com/api/projects/status/bgyngfdyprx8wqgp/branch/master?svg=true)](https://ci.appveyor.com/project/Pyrite/pyritecli/branch/master) | [![Build status](https://ci.appveyor.com/api/projects/status/bgyngfdyprx8wqgp?svg=true)](https://ci.appveyor.com/project/Pyrite/pyritecli)
 
-# Cuber
+# Pyrite CLI
 ### A tool for slicing meshes
 
-*Cuber is under heavy development as part of a pre-processing pipeline for CubeServer.  You are welcome to use it now, but you should expect issues*
+*Pyrite CLI is under heavy development as part of a pre-processing pipeline for CubeServer.  You are welcome to use it now, but you should expect issues*
 
 #### Features
 
