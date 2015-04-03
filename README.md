@@ -1,4 +1,6 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/nb5v8as084fpe45v?svg=true)](https://ci.appveyor.com/project/stefangordon/cuber)
+master | Project
+--- | ---
+[![Build status](https://ci.appveyor.com/api/projects/status/bgyngfdyprx8wqgp/branch/master?svg=true)](https://ci.appveyor.com/project/Pyrite/pyritecli/branch/master) | [![Build status](https://ci.appveyor.com/api/projects/status/bgyngfdyprx8wqgp?svg=true)](https://ci.appveyor.com/project/Pyrite/pyritecli)
 
 # Cuber
 ### A tool for slicing meshes
