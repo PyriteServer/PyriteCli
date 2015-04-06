@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,8 @@ namespace CuberLib
 {
 	public class CubeManager
 	{
+        private readonly string TextureSubDirectory = "texture";
+
 		public Obj ObjInstance { get; set; }
 		private XyzPoint size;
 
@@ -35,14 +38,19 @@ namespace CuberLib
 
 		public void GenerateCubes(string outputPath, SlicingOptions options)
 		{
-			CubeMetadata metadata = new CubeMetadata(size) { Extents = ObjInstance.Size };
+			CubeMetadata metadata = new CubeMetadata(size) { WorldBounds = ObjInstance.Size };
 
 			// If appropriate, generate textures and save transforms first
 			if (!string.IsNullOrEmpty(options.Texture))
 			{
-				options.UVTransforms = GenerateTextures(outputPath, options);
+				options.UVTransforms = GenerateTextures(Path.Combine(outputPath, TextureSubDirectory), options);
 				ObjInstance.TransformUVs(options);
+                metadata.TextureSetSize = new XyPoint { X = options.TextureSliceX, Y = options.TextureSliceY };
 			}
+            else
+            {
+                metadata.TextureSetSize = new XyPoint { X = 1, Y = 1 };
+            }
 
 			// Generate some tiles			
 			SpatialUtilities.EnumerateSpace(size, (x, y, z) =>
@@ -92,7 +100,7 @@ namespace CuberLib
 				Texture t = new Texture(this.ObjInstance);
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
 
-				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y);
+				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale);
 				transforms.Add(extent, transform);
             });
 

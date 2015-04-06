@@ -73,7 +73,7 @@ namespace CuberLib
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
-		public RectangleTransform[] GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY)
+		public RectangleTransform[] GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale)
 		{
 			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY);
 
@@ -116,7 +116,16 @@ namespace CuberLib
 					// Write to disk
 					if (File.Exists(outputPath)) File.Delete(outputPath);
 					if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-					packed.Save(outputPath, ImageFormat.Jpeg);
+
+                    if (scale != 1)
+                    {
+                        var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
+                        scaledPacked.Save(outputPath, ImageFormat.Jpeg);
+                    }
+                    else
+                    {
+                        packed.Save(outputPath, ImageFormat.Jpeg);
+                    }
 				}
 
 				// Generate the UV transform array
@@ -273,5 +282,30 @@ namespace CuberLib
 				dest.DrawImage(source, 0, 0, source.Width, source.Height);
 			}
 		}
-	}
+
+        public static Bitmap ResizeImage(Image image, int width, int height)
+        {
+            var destRect = new Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return destImage;
+        }
+    }
 }

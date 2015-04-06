@@ -17,5 +17,6 @@ namespace CuberLib
 		public int TextureSliceY { get; set; }
 		public float TextureScale { get; set; }
 		public Dictionary<Extent, RectangleTransform[]> UVTransforms { get; set; }
-	}
+        
+    }
 }
