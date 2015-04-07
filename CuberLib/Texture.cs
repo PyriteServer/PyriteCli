@@ -94,8 +94,22 @@ namespace CuberLib
 				// Identify blob rectangles
 				Rectangle[] sourceRects = FindBlobRectangles(output);
 
+				if (sourceRects == null || sourceRects.Count() == 0)
+				{
+					output.Save("debug_" + DateTime.Now.ToShortTimeString() + ".jpg", ImageFormat.Jpeg);
+					Console.WriteLine("No blobs found in sparse texture. Debug texture output to debug_<timestamp>.jpg");
+					return new RectangleTransform[0];
+				}
+
 				// Bin pack rects, starting with 1024x1024 and growing to a maximum 8192.
 				Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 8192);
+
+				if (destinationRects == null || destinationRects.Count() == 0)
+				{
+					output.Save("debug_" + DateTime.Now.ToShortTimeString() + ".jpg", ImageFormat.Jpeg);
+					Console.WriteLine("No blobs found in destination rects. Debug texture output to debug_<timestamp>.jpg");
+					return new RectangleTransform[0];
+				}
 
 				// Identify the cropped size of our new texture
 				originalSize = output.Size;

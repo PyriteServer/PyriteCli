@@ -1,0 +1,11 @@
+cuber -x 128 -y 128 -z 4 -u 16 -v 16 -s 1 -t ..\model.jpg ..\L1 ..\model.obj
+
+cuber -x 64 -y 64 -z 4 -u 16 -v 16 -s 1 -t ..\model.jpg ..\L2 ..\model50.obj
+
+cuber -x 32 -y 32 -z 2 -u 8 -v 8 -s 0.5 -t ..\model.jpg ..\L3 ..\model25.obj
+
+cuber -x 16 -y 16 -z 2 -u 8 -v 8 -s 0.5 -t ..\model.jpg ..\L4 ..\model12.obj
+
+cuber -x 8 -y 8 -z 2 -u 2 -v 2 -s 0.25 -t ..\model.jpg ..\L5 ..\model3.obj
+
+cuber -x 4 -y 4 -z 2 -u 1 -v 1 -s 0.15 -t ..\model.jpg ..\L6 ..\model0_75.obj
