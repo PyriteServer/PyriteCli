@@ -5,7 +5,9 @@ master | Project
 # Pyrite CLI
 ### A tool for slicing meshes
 
-*Pyrite CLI is under heavy development as part of a pre-processing pipeline for CubeServer.  You are welcome to use it now, but you should expect issues*
+*Pyrite CLI is under heavy development as part of a pre-processing pipeline for Pyrite3D.  You are welcome to use it now, but you should expect issues*
+
+PyriteCLI details are included in the [Pyrite Server Wiki](https://github.com/PyriteServer/PyriteServer/wiki).
 
 #### Features
 
