@@ -1,23 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CuberLib.Types
+namespace PyriteLib.Types
 {
-    public class Vertex : IType
+    public class TextureVertex : IType
     {
-        public const int MinimumDataLength = 4;
-        public const string Prefix = "v";
+        public const int MinimumDataLength = 3;
+        public const string Prefix = "vt";
 
         public double X { get; set; }
 
         public double Y { get; set; }
 
-        public double Z { get; set; }
-
         public int Index { get; set; }
+
+		public bool Transformed { get; set; }
 
 		public void LoadFromStringArray(string[] data)
         {
@@ -29,7 +30,7 @@ namespace CuberLib.Types
 
             bool success;
 
-            double x, y, z;
+            double x, y;
 
             success = double.TryParse(data[1], out x);
             if (!success) throw new ArgumentException("Could not parse X parameter as double");
@@ -37,25 +38,31 @@ namespace CuberLib.Types
             success = double.TryParse(data[2], out y);
             if (!success) throw new ArgumentException("Could not parse Y parameter as double");
 
-            success = double.TryParse(data[3], out z);
-            if (!success) throw new ArgumentException("Could not parse Z parameter as double");
-
             X = x;
             Y = y;
-            Z = z;
         }
 
-        public bool InExtent(Extent extent)
+        public bool InRectangleTransform(RectangleTransform transform)
         {
-            if (X < extent.XMin || X > extent.XMax || Y < extent.YMin || Y > extent.YMax || Z < extent.ZMin || Z > extent.ZMax)
-                return false;
-
-            return true;
+			return transform.ContainsPoint(X, Y);
         }
+
+		public void Transform(RectangleTransform transform)
+		{
+			if (Transformed) return;
+
+			X += ((X - transform.Left) * transform.ScaleX) - (X - transform.Left);
+			Y += ((Y - transform.Top) * transform.ScaleY) - (Y - transform.Top);
+
+			X -= transform.OffsetX;
+			Y += transform.OffsetY;
+
+			Transformed = true;
+		}
 
         public override string ToString()
         {
-            return string.Format("v {0} {1} {2}", X, Y, Z);
+            return string.Format("vt {0} {1}", X, Y);
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CuberLib.Types
+namespace PyriteLib.Types
 {
     public class Face : IType
     {

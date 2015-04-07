@@ -52,9 +52,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CuberLib\CuberLib.csproj">
+    <ProjectReference Include="..\PyriteLib\PyriteLib.csproj">
       <Project>{c0bd104e-2930-432c-832e-f7cb38ccbe05}</Project>
-      <Name>CuberLib</Name>
+      <Name>PyriteLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -4,11 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using CuberLib.Types;
+using PyriteLib.Types;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace CuberLib
+namespace PyriteLib
 {
     public class Obj
     {

@@ -8,10 +8,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using af = AForge.Imaging;
-using CuberLib.Types;
+using PyriteLib.Types;
 using System.Diagnostics;
 
-namespace CuberLib
+namespace PyriteLib
 {
 	public class Texture
 	{

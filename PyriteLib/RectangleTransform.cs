@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CuberLib
+namespace PyriteLib
 {
 	// Represents a transform that applies to data within a specific rectangle
 	// Does not currently support rotation.

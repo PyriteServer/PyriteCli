@@ -7,9 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using clipr;
 using clipr.Core;
-using CuberLib;
+using PyriteLib;
 
-namespace Cuber
+namespace PyriteCli
 {
     class Program
     {
