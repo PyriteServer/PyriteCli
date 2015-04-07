@@ -56,7 +56,7 @@ namespace CuberLib
 
 		public void TransformUVs(SlicingOptions options)
 		{
-			Console.WriteLine("Transforming UV points");
+			Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
 
 			foreach (var extent in options.UVTransforms.Keys)
 			{
@@ -71,8 +71,8 @@ namespace CuberLib
 						uv.Transform(transform);
 					}
 					else
-					{
-						Console.WriteLine("No transform found for UV");
+					{                                                    
+						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[extent].Count());
 					}
 				}
             }
@@ -154,7 +154,7 @@ namespace CuberLib
 			if (!chunkFaceList.Any())
 				return 0;
 
-            Console.WriteLine("{0} faces", chunkFaceList.Count);
+            Trace.TraceInformation("{0} faces", chunkFaceList.Count);
 
 			if (options.GenerateEbo)
 			{
@@ -257,11 +257,6 @@ namespace CuberLib
 								// Now add the delta to index into this triangle correctly
 								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
 								index += indexInFace;
-
-								if (face.TextureVertexIndexList[indexInFace] != chunkFaceList[fi].TextureVertexIndexList[i])
-								{
-									Console.WriteLine("Danger! Danger Will Ronbinson!");
-								}
 
 								// write the back reference instead of the vertex
 								writer.Write((byte)0);

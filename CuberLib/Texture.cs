@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using af = AForge.Imaging;
 using CuberLib.Types;
+using System.Diagnostics;
 
 namespace CuberLib
 {
@@ -82,11 +83,14 @@ namespace CuberLib
 
 			if (!triangles.Any())
 			{
+                Trace.TraceInformation("No faces found in tile {0}, {1}.  No texture generated.", tileX, tileY);
 				return new RectangleTransform[0];
 			}
 
 			Size originalSize;
 			Size newSize = new Size();
+
+            Trace.TraceInformation("Generating sparse texture for tile {0}, {1}", tileX, tileY);
 
 			// Load original texture and initiate new texture
 			using (Bitmap output = GenerateSparseTexture(texturePath, triangles))
@@ -96,18 +100,16 @@ namespace CuberLib
 
 				if (sourceRects == null || sourceRects.Count() == 0)
 				{
-					output.Save("debug_" + DateTime.Now.ToShortTimeString() + ".jpg", ImageFormat.Jpeg);
-					Console.WriteLine("No blobs found in sparse texture. Debug texture output to debug_<timestamp>.jpg");
-					return new RectangleTransform[0];
-				}
+                    Trace.TraceInformation("No blobs found in sparse texture. Debug texture output to {0}", WriteDebugImage(output, outputPath));
+                    return new RectangleTransform[0];
+                }
 
-				// Bin pack rects, starting with 1024x1024 and growing to a maximum 8192.
-				Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 8192);
+                // Bin pack rects, starting with 1024x1024 and growing to a maximum 16384.
+                Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 16384);
 
 				if (destinationRects == null || destinationRects.Count() == 0)
 				{
-					output.Save("debug_" + DateTime.Now.ToShortTimeString() + ".jpg", ImageFormat.Jpeg);
-					Console.WriteLine("No blobs found in destination rects. Debug texture output to debug_<timestamp>.jpg");
+					Trace.TraceInformation("No blobs found in destination rects. Debug texture output to {0}", WriteDebugImage(output, outputPath));
 					return new RectangleTransform[0];
 				}
 
@@ -187,10 +189,10 @@ namespace CuberLib
 
 			for (int i = 0; i < sourceRects.Length; i++)
 			{
-				sourceRects[i].X -= 1;
-				sourceRects[i].Y -= 1;
-				sourceRects[i].Height += 2;
-				sourceRects[i].Width += 2;
+				sourceRects[i].X -= 2;
+				sourceRects[i].Y -= 2;
+				sourceRects[i].Height += 4;
+				sourceRects[i].Width += 4;
 			}
 
 			return sourceRects;
@@ -198,32 +200,36 @@ namespace CuberLib
 
 		private Bitmap GenerateSparseTexture(string texturePath, List<Tuple<TextureVertex, TextureVertex, TextureVertex>> triangles)
 		{
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
 			Image original = Image.FromFile(texturePath);
 			Bitmap output = new Bitmap(original.Width, original.Height, original.PixelFormat);
 			using (Graphics destGraphics = Graphics.FromImage(output))
 			{
+                // Less expensive compositing method, but don't use if drawing primitives
+                destGraphics.CompositingMode = CompositingMode.SourceCopy;
+                destGraphics.InterpolationMode = InterpolationMode.NearestNeighbor;
 
-				// write into same location in new bitmap
-				for (int i = 0; i < triangles.Count; i++)
+                Trace.TraceInformation("Copying {0} triangles to new texture", triangles.Count);
+
+                // write into same location in new bitmap            
+                for (int i = 0; i < triangles.Count; i++)
 				{
 					var triangle = triangles[i];
 					var poly = new PointF[] {
-					new PointF((float)(triangle.Item1.X * original.Width), (float)((1-triangle.Item1.Y) * original.Height)),
-					new PointF((float)(triangle.Item2.X * original.Width), (float)((1-triangle.Item2.Y) * original.Height)),
-					new PointF((float)(triangle.Item3.X * original.Width), (float)((1-triangle.Item3.Y) * original.Height)),
-					new PointF((float)(triangle.Item1.X * original.Width), (float)((1-triangle.Item1.Y) * original.Height))
+					    new PointF((float)(triangle.Item1.X * original.Width), (float)((1-triangle.Item1.Y) * original.Height)),
+					    new PointF((float)(triangle.Item2.X * original.Width), (float)((1-triangle.Item2.Y) * original.Height)),
+					    new PointF((float)(triangle.Item3.X * original.Width), (float)((1-triangle.Item3.Y) * original.Height)),
+					    new PointF((float)(triangle.Item1.X * original.Width), (float)((1-triangle.Item1.Y) * original.Height))
 					};
 
 					CopyPolygon(original, destGraphics, poly, poly);
-
-					if (i % 10000 == 0)
-					{
-						Console.WriteLine("{0} of {1}", i, triangles.Count);
-					}
 				}
 
 				destGraphics.ResetClip();
 			}
+            
+            Trace.TraceInformation("Sparse Texture Creation Time: " + stopwatch.Elapsed.ToString());
 
 			original.Dispose();
 			return output;
@@ -262,7 +268,10 @@ namespace CuberLib
 
 		private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
 		{
-			if (width > maxSize || height > maxSize) return null;			
+            Trace.TraceInformation("Bin packing {0} rectangles", source.Length);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            if (width > maxSize || height > maxSize) return null;			
 
 			MaxRectanglesBinPack bp = new MaxRectanglesBinPack(width, height, false);
 			Rectangle[] rects = new Rectangle[source.Length];
@@ -277,7 +286,9 @@ namespace CuberLib
 				rects[i] = rect;
 			}
 
-			return rects;
+            Trace.TraceInformation("Bin packing time for {0} by {1} texture: " + stopwatch.Elapsed.ToString(), width, height);
+
+            return rects;
 		}
 
 
@@ -320,6 +331,20 @@ namespace CuberLib
             }
 
             return destImage;
+        }
+
+        private string WriteDebugImage(Image source, string outputPath)
+        {
+            string directory = Path.GetDirectoryName(outputPath);
+            string filename = string.Format("error-{0:yyyy-MM-dd_hh-mm-ss-tt}.bin", DateTime.Now);
+            string newPath = Path.Combine(directory, filename);
+
+            if (File.Exists(newPath)) File.Delete(newPath);
+            if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
+
+            source.Save(outputPath, ImageFormat.Jpeg);
+
+            return filename;         
         }
     }
 }

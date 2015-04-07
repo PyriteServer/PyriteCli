@@ -16,6 +16,8 @@ namespace CuberLib
 
         public XyPoint TextureSetSize { get; set; }
 
+        public int VertexCount { get; set; }
+
         public CubeMetadata(XyzPoint size)
 		{
             SetSize = size;

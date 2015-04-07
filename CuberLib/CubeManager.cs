@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -26,19 +27,19 @@ namespace CuberLib
 			};
 			
 			// Parse and load the object
-			Console.WriteLine("Loading {0}", inputFile);
+			Trace.TraceInformation("Loading {0}", inputFile);
 			ObjInstance = new Obj();
 			ObjInstance.LoadObj(inputFile, ShowLinesLoaded);
 
 			// Write out a bit of info about the object
-			Console.WriteLine("Loaded {0} vertices and {1} faces", ObjInstance.VertexList.Count(), ObjInstance.FaceList.Count());
-			Console.WriteLine("Size: X {0} Y {1} Z {2}", ObjInstance.Size.XSize, ObjInstance.Size.YSize, ObjInstance.Size.ZSize);
-			Console.WriteLine("Memory Used: " + GC.GetTotalMemory(true) / 1024 / 1024 + "mb");
+			Trace.TraceInformation("Loaded {0} vertices and {1} faces", ObjInstance.VertexList.Count(), ObjInstance.FaceList.Count());
+			Trace.TraceInformation("Size: X {0} Y {1} Z {2}", ObjInstance.Size.XSize, ObjInstance.Size.YSize, ObjInstance.Size.ZSize);
+			Trace.TraceInformation("Memory Used: " + GC.GetTotalMemory(true) / 1024 / 1024 + "mb");
 		}
 
 		public void GenerateCubes(string outputPath, SlicingOptions options)
 		{
-			CubeMetadata metadata = new CubeMetadata(size) { WorldBounds = ObjInstance.Size };
+			CubeMetadata metadata = new CubeMetadata(size) { WorldBounds = ObjInstance.Size, VertexCount = ObjInstance.VertexList.Count };
 
 			// If appropriate, generate textures and save transforms first
 			if (!string.IsNullOrEmpty(options.Texture))
@@ -55,7 +56,7 @@ namespace CuberLib
 			// Generate some tiles			
 			SpatialUtilities.EnumerateSpace(size, (x, y, z) =>
 			{
-				Console.WriteLine("Processing cube [{0}, {1}, {2}]", x, y, z);
+				Trace.TraceInformation("Processing cube [{0}, {1}, {2}]", x, y, z);
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));
 				int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, size.X, size.Y, size.Z, x, y, z, options);
 				metadata.CubeExists[x, y, z] = vertexCount > 0;
@@ -73,7 +74,7 @@ namespace CuberLib
 		{
 			if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
 
-			Console.WriteLine("Generating textures.");
+			Trace.TraceInformation("Generating textures.");
 
 			Dictionary<Extent, RectangleTransform[]> transforms = new Dictionary<Extent, RectangleTransform[]>();
 
