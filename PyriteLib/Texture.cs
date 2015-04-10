@@ -53,7 +53,7 @@ namespace PyriteLib
 			}
 		}
 
-		public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms)
+		public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms, TextureVertex[] uvs)
 		{
 			string outputPath = texturePath + "_transform.jpg";
 
@@ -62,6 +62,10 @@ namespace PyriteLib
 				using (Graphics g = Graphics.FromImage(output))
 				{
 					g.DrawRectangles(Pens.Red, transforms.Select(t => t.ToRectangle(output.Size)).ToArray());
+					if (uvs != null)
+					{
+						g.DrawRectangles(Pens.Green, uvs.Select(u => new Rectangle((int)(u.X * output.Width - 1), (int)((1 - u.Y) * output.Height - 1), 3, 3)).ToArray());
+					}
 				}
 
 				// Write to disk
