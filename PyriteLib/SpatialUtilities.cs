@@ -61,6 +61,17 @@ namespace PyriteLib
 			}
 		}
 
+        public static void EnumerateSpaceParallel(int X, int Y, Action<int, int> Action)
+        {
+            Parallel.For(0, X, (x) =>
+            {
+                Parallel.For(0, Y, (y) =>
+                {
+                    Action(x, y);
+                });
+            });
+        }
 
-	}
+
+    }
 }

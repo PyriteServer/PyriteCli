@@ -12,7 +12,7 @@ namespace PyriteLib
 	// Everything scaled to 0-1.
 	public class RectangleTransform
 	{
-		private const int PRECISION = 6;
+		private const int PRECISION = 4;
 
 		public double Left { get; set; }
 		public double Right { get; set; }

@@ -262,7 +262,7 @@ namespace PyriteLib
 			};
 
 			List<Face> chunkFaceList;
-			chunkFaceList = obj.FaceList.AsParallel().Where(v => v.InExtent(newSize, obj.VertexList)).ToList();
+			chunkFaceList = obj.FaceList.AsParallel().Where(f => f.InExtent(newSize, obj.VertexList)).ToList();
 			return chunkFaceList;
 		}
 

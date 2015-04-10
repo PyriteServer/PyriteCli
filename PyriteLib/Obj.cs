@@ -71,7 +71,10 @@ namespace PyriteLib
 						uv.Transform(transform);
 					}
 					else
-					{                                                    
+					{
+                        var bestTransforms = options.UVTransforms[extent].OrderBy(
+                            t => Math.Min(Math.Abs(t.Left - uv.X), Math.Abs(t.Right - uv.X)) + Math.Min(Math.Abs(t.Top - uv.Y), Math.Abs(t.Bottom - uv.Y))).Take(4).ToList();
+
 						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[extent].Count());
 					}
 				}

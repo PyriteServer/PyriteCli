@@ -78,7 +78,7 @@ namespace PyriteLib
 
 			Dictionary<Extent, RectangleTransform[]> transforms = new Dictionary<Extent, RectangleTransform[]>();
 
-			SpatialUtilities.EnumerateSpace(options.TextureSliceX, options.TextureSliceY, (x, y) =>
+			SpatialUtilities.EnumerateSpaceParallel(options.TextureSliceX, options.TextureSliceY, (x, y) =>
 			{
 				// Get extent
 				double tileHeight = this.ObjInstance.Size.YSize / options.TextureSliceY;
