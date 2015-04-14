@@ -78,6 +78,12 @@ namespace PyriteLib
 
 			Dictionary<Extent, RectangleTransform[]> transforms = new Dictionary<Extent, RectangleTransform[]>();
 
+			// Create texture
+			Texture t = new Texture(this.ObjInstance);
+
+			// Hold a ref to the texture instance for debugging
+			options.TextureInstance = t;
+
 			SpatialUtilities.EnumerateSpaceParallel(options.TextureSliceX, options.TextureSliceY, (x, y) =>
 			{
 				// Get extent
@@ -97,8 +103,7 @@ namespace PyriteLib
 					ZMax = this.ObjInstance.Size.ZMax
 				};
 
-				// Create texture
-				Texture t = new Texture(this.ObjInstance);
+				
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
 
 				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale);

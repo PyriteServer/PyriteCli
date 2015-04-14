@@ -60,24 +60,50 @@ namespace PyriteLib
 
 			foreach (var extent in options.UVTransforms.Keys)
 			{
-				var uvIndices = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).SelectMany(f => f.TextureVertexIndexList).Distinct();
-				foreach (var uv in uvIndices.Select(i => TextureList[i-1]).Where(t => !t.Transformed))
+				var faces = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).ToList();
+                var uvIndices = faces.SelectMany(f => f.TextureVertexIndexList).Distinct();
+				var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
+                foreach (var uv in uvs)
 				{
-					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(uv.X, uv.Y));
+					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
 
 					if (transforms.Any())
 					{
 						RectangleTransform transform = transforms.First();
-						uv.Transform(transform);
+
+						if (uv.Transformed)
+						{
+							// This was already transformed in another extent, so we'll have to copy it
+							int newIndex = uv.CloneOriginal(TextureList);
+							TextureList[newIndex - 1].Transform(transform);
+
+							// Update all faces using the old UV in this extent
+							var FacesToUpdate = faces.Where(f => f.TextureVertexIndexList.Contains(uv.Index));
+							foreach (var face in FacesToUpdate)
+							{
+								face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
+							}
+
+							Trace.TraceInformation("Added new VT: " + newIndex);
+						}
+						else
+						{
+							uv.Transform(transform);
+						}
 					}
 					else
 					{
-                        var bestTransforms = options.UVTransforms[extent].OrderBy(
-                            t => Math.Min(Math.Abs(t.Left - uv.X), Math.Abs(t.Right - uv.X)) + Math.Min(Math.Abs(t.Top - uv.Y), Math.Abs(t.Bottom - uv.Y))).Take(4).ToList();
+                        //var bestTransforms = options.UVTransforms[extent].OrderBy(
+                        //   t => Math.Min(Math.Abs(t.Left - uv.X), Math.Abs(t.Right - uv.X)) + Math.Min(Math.Abs(t.Top - uv.Y), Math.Abs(t.Bottom - uv.Y))).Take(4).ToList();
 
 						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[extent].Count());
 					}
 				}
+
+				var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
+				var relevantTransforms = options.UVTransforms[extent];
+				if (relevantTransforms.Any() && notTransformedUVs.Any())
+				 options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
             }
 		}
 

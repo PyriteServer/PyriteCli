@@ -16,7 +16,11 @@ namespace PyriteLib.Types
 
         public double Y { get; set; }
 
-        public int Index { get; set; }
+		public double OriginalX { get; set; }
+
+		public double OriginalY { get; set; }
+
+		public int Index { get; set; }
 
 		public bool Transformed { get; set; }
 
@@ -38,13 +42,13 @@ namespace PyriteLib.Types
             success = double.TryParse(data[2], out y);
             if (!success) throw new ArgumentException("Could not parse Y parameter as double");
 
-            X = x;
-            Y = y;
+            X = OriginalX = x;
+            Y = OriginalY = y;
         }
 
         public bool InRectangleTransform(RectangleTransform transform)
         {
-			return transform.ContainsPoint(X, Y);
+			return transform.ContainsPoint(OriginalX, OriginalY);
         }
 
 		public void Transform(RectangleTransform transform)
@@ -64,5 +68,21 @@ namespace PyriteLib.Types
         {
             return string.Format("vt {0} {1}", X, Y);
         }
+
+		public int CloneOriginal(List<TextureVertex> textureVertexList)
+		{
+			int newIndex = textureVertexList.Count + 1;
+            textureVertexList.Add(new TextureVertex
+			{
+				Index = newIndex,
+				X = this.OriginalX,
+				Y = this.OriginalY,
+				OriginalX = this.OriginalX,
+				OriginalY = this.OriginalY,
+				Transformed = false
+			});
+
+			return newIndex;
+		}
     }
 }

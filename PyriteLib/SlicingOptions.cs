@@ -16,6 +16,7 @@ namespace PyriteLib
 		public int TextureSliceX { get; set; }
 		public int TextureSliceY { get; set; }
 		public float TextureScale { get; set; }
+		public Texture TextureInstance { get; set; }
 		public Dictionary<Extent, RectangleTransform[]> UVTransforms { get; set; }
         
     }

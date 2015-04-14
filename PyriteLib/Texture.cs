@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using af = AForge.Imaging;
 using PyriteLib.Types;
-using System.Diagnostics;
 
 namespace PyriteLib
 {
@@ -55,23 +52,20 @@ namespace PyriteLib
 
 		public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms, TextureVertex[] uvs)
 		{
-			string outputPath = texturePath + "_transform.jpg";
-
 			using (Image output = Image.FromFile(texturePath))
 			{
 				using (Graphics g = Graphics.FromImage(output))
 				{
-					g.DrawRectangles(Pens.Red, transforms.Select(t => t.ToRectangle(output.Size)).ToArray());
+					//g.Clear(Color.Black);
+					g.DrawRectangles(new Pen(Color.Red, 10), transforms.Select(t => t.ToRectangle(output.Size)).ToArray());
 					if (uvs != null)
 					{
-						g.DrawRectangles(Pens.Green, uvs.Select(u => new Rectangle((int)(u.X * output.Width - 1), (int)((1 - u.Y) * output.Height - 1), 3, 3)).ToArray());
+						g.DrawRectangles(new Pen(Color.Green, 10), uvs.Select(u => new Rectangle((int)(u.X * output.Width - 5), (int)((1 - u.Y) * output.Height - 5), 10, 10)).ToArray());
 					}
 				}
 
 				// Write to disk
-				if (File.Exists(outputPath)) File.Delete(outputPath);
-				if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-				output.Save(outputPath, ImageFormat.Jpeg);
+				WriteDebugImage(output, texturePath, "transforms");
 			}
 
 		}
@@ -82,54 +76,42 @@ namespace PyriteLib
 		{
 			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY);
 
-			// get list of UV triangles
-			var triangles = GetUVTriangles(chunkFaceList);
-
-			if (!triangles.Any())
+			if (!chunkFaceList.Any())
 			{
-                Trace.TraceInformation("No faces found in tile {0}, {1}.  No texture generated.", tileX, tileY);
+				Trace.TraceInformation("No faces found in tile {0}, {1}.  No texture generated.", tileX, tileY);
 				return new RectangleTransform[0];
 			}
-
+			
 			Size originalSize;
 			Size newSize = new Size();
 
             Trace.TraceInformation("Generating sparse texture for tile {0}, {1}", tileX, tileY);
 
-			// Load original texture and initiate new texture
-			using (Bitmap output = GenerateSparseTexture(texturePath, triangles))
+			using (Image source = Image.FromFile(texturePath))
 			{
+
 				// Identify blob rectangles
-				Rectangle[] sourceRects = FindBlobRectangles(output);
+				var groupedFaces = FindConnectedFaces(chunkFaceList);
+				var uvRects = FindUVRectangles(groupedFaces);
+				Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, source.Size, 2);
 
-				if (sourceRects == null || sourceRects.Count() == 0)
-				{
-                    Trace.TraceInformation("No blobs found in sparse texture. Debug texture output to {0}", WriteDebugImage(output, outputPath));
-                    return new RectangleTransform[0];
-                }
 
-                // Bin pack rects, starting with 1024x1024 and growing to a maximum 16384.
-                Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 16384);
-
-				if (destinationRects == null || destinationRects.Count() == 0)
-				{
-					Trace.TraceInformation("No blobs found in destination rects. Debug texture output to {0}", WriteDebugImage(output, outputPath));
-					return new RectangleTransform[0];
-				}
+				// Bin pack rects, starting with 1024x1024 and growing to a maximum 16384.
+				Rectangle[] destinationRects = PackTextures(sourceRects, 4096, 4096, 16384);
 
 				// Identify the cropped size of our new texture
-				originalSize = output.Size;
+				originalSize = source.Size;
 				newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
 				newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
 
 				// Build the new bin packed and cropped texture
-				using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, output.PixelFormat))
+				using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
 				{
 					using (Graphics packedGraphics = Graphics.FromImage(packed))
 					{
 						for (int i = 0; i < sourceRects.Length; i++)
-						{ 
-							packedGraphics.DrawImage(output, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
+						{
+							packedGraphics.DrawImage(source, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
 						}
 					}
 
@@ -137,35 +119,35 @@ namespace PyriteLib
 					if (File.Exists(outputPath)) File.Delete(outputPath);
 					if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
 
-                    if (scale != 1)
-                    {
-                        var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
-                        scaledPacked.Save(outputPath, ImageFormat.Jpeg);
-                    }
-                    else
-                    {
-                        packed.Save(outputPath, ImageFormat.Jpeg);
-                    }
+					if (scale != 1)
+					{
+						var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
+						scaledPacked.Save(outputPath, ImageFormat.Jpeg);
+					}
+					else
+					{
+						packed.Save(outputPath, ImageFormat.Jpeg);
+					}
 				}
 
 				// Generate the UV transform array
 				var outputTransforms = new RectangleTransform[sourceRects.Length];
 				for (int i = 0; i < sourceRects.Length; i++)
 				{
-					Rectangle source = sourceRects[i];
-					Rectangle dest = destinationRects[i];
+					Rectangle s = sourceRects[i];
+					Rectangle d = destinationRects[i];
 
 					var transform = new RectangleTransform
 					{
 						// figure out total image size and convert rects to percentages
-						Top = 1-(source.Top / (double)originalSize.Height),
-						Bottom = 1-(source.Bottom / (double)originalSize.Height),
-						Left = source.Left / (double)originalSize.Width,
-						Right = source.Right / (double)originalSize.Width,
-						OffsetX = (source.Left / (double)originalSize.Width) - (dest.Left / (double)newSize.Width),
-						OffsetY = ((source.Top / (double)originalSize.Height) - (dest.Top / (double)newSize.Height)),
-						ScaleX =  (double)originalSize.Width / (double)newSize.Width,
-						ScaleY =  (double)originalSize.Height / (double)newSize.Height
+						Top = 1 - (s.Top / (double)originalSize.Height),
+						Bottom = 1 - (s.Bottom / (double)originalSize.Height),
+						Left = s.Left / (double)originalSize.Width,
+						Right = s.Right / (double)originalSize.Width,
+						OffsetX = (s.Left / (double)originalSize.Width) - (d.Left / (double)newSize.Width),
+						OffsetY = ((s.Top / (double)originalSize.Height) - (d.Top / (double)newSize.Height)),
+						ScaleX = (double)originalSize.Width / (double)newSize.Width,
+						ScaleY = (double)originalSize.Height / (double)newSize.Height
 					};
 
 					outputTransforms[i] = transform;
@@ -175,68 +157,74 @@ namespace PyriteLib
 			}
 		}
 
-		private IEnumerable<Point> FindAbandonedUVs(Rectangle[] sourceRects, List<Tuple<TextureVertex, TextureVertex, TextureVertex>> triangles, Size textureSize)
+		private static Rectangle[] TransformUVRectToBitmapRect(RectangleF[] uvRects, Size textureSize, int pixelBuffer)
 		{
-			var vts = triangles.SelectMany(t => new TextureVertex[] { t.Item1, t.Item2, t.Item3 }).Distinct();
-			var scaledVTs = vts.Select(v => new Point((int)(v.X * textureSize.Width), (int)((1 - v.Y) * textureSize.Height)));
+			Rectangle[] rects = new Rectangle[uvRects.Length];
 
-			var abandoned = scaledVTs.Where(p => !sourceRects.Any(r => r.Contains(p)));
-
-			return abandoned;
-		}
-
-		private static Rectangle[] FindBlobRectangles(Bitmap output)
-		{
-			af.BlobCounter bc = new af.BlobCounter();
-			bc.ProcessImage(output);
-			Rectangle[] sourceRects = bc.GetObjectsRectangles();
-
-			for (int i = 0; i < sourceRects.Length; i++)
+			for (int i = 0; i < uvRects.Length; i++)
 			{
-				sourceRects[i].X -= 2;
-				sourceRects[i].Y -= 2;
-				sourceRects[i].Height += 4;
-				sourceRects[i].Width += 4;
+				var r = uvRects[i];
+				rects[i] = new Rectangle(
+					(int)(r.X * textureSize.Width) - pixelBuffer, 
+					(int)((1 - r.Y) * textureSize.Height) - pixelBuffer, 
+					(int)(r.Width * textureSize.Width) + (pixelBuffer * 2), 
+					(int)(r.Height * textureSize.Height) + (pixelBuffer * 2));
 			}
 
-			return sourceRects;
+			return rects;
 		}
 
-		private Bitmap GenerateSparseTexture(string texturePath, List<Tuple<TextureVertex, TextureVertex, TextureVertex>> triangles)
+		private RectangleF[] FindUVRectangles(List<List<Face>> groupedFaces)
 		{
-            Stopwatch stopwatch = Stopwatch.StartNew();
+			int groupCount = groupedFaces.Count();
+			
+			RectangleF[] rects = new RectangleF[groupCount];
 
-			Image original = Image.FromFile(texturePath);
-			Bitmap output = new Bitmap(original.Width, original.Height, original.PixelFormat);
-			using (Graphics destGraphics = Graphics.FromImage(output))
+			for (int i = 0; i < groupCount; i++)
 			{
-                // Less expensive compositing method, but don't use if drawing primitives
-                destGraphics.CompositingMode = CompositingMode.SourceCopy;
-                destGraphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+				var triangles = GetUVTriangles(groupedFaces[i]);
+				var uvs = triangles.SelectMany(t => new List<TextureVertex> { t.Item1, t.Item2, t.Item3 }).Distinct();
+				float minX = (float)uvs.Min(uv => uv.X);
+				float maxX = (float)uvs.Max(uv => uv.X);
+				float minY = (float)uvs.Min(uv => uv.Y);
+				float maxY = (float)uvs.Max(uv => uv.Y);
 
-                Trace.TraceInformation("Copying {0} triangles to new texture", triangles.Count);
+				rects[i] = new RectangleF(minX, maxY, maxX - minX, maxY - minY);
+			}
 
-                // write into same location in new bitmap            
-                for (int i = 0; i < triangles.Count; i++)
+			return rects;
+        }
+
+		private static List<List<Face>> FindConnectedFaces(List<Face> faces)
+		{
+			var remainingFaces = new List<Face>(faces);
+
+			var groupedFaces = new List<List<Face>>();
+
+			while (remainingFaces.Any())
+			{				
+				var newGroup = new List<Face> { remainingFaces[0] };
+				groupedFaces.Add(newGroup);
+
+				// Pull the first face off the list and work on it				
+				List<Face> matches = new List<Face> { remainingFaces[0] };
+
+				remainingFaces.RemoveAt(0);
+
+				// Intersect and move to group until no more intersections are found.
+				do
 				{
-					var triangle = triangles[i];
-					var poly = new PointF[] {
-					    new PointF((float)(triangle.Item1.X * original.Width), (float)((1-triangle.Item1.Y) * original.Height)),
-					    new PointF((float)(triangle.Item2.X * original.Width), (float)((1-triangle.Item2.Y) * original.Height)),
-					    new PointF((float)(triangle.Item3.X * original.Width), (float)((1-triangle.Item3.Y) * original.Height)),
-					    new PointF((float)(triangle.Item1.X * original.Width), (float)((1-triangle.Item1.Y) * original.Height))
-					};
-
-					CopyPolygon(original, destGraphics, poly, poly);
+					matches = remainingFaces.AsParallel().Where(f => matches.Contains(f, new SharedTextureVertexEqualityComparer())).ToList();
+					newGroup.AddRange(matches);	
+					foreach (var f in matches)
+					{
+						remainingFaces.Remove(f);
+					}
 				}
-
-				destGraphics.ResetClip();
+				while (matches.Any());				
 			}
-            
-            Trace.TraceInformation("Sparse Texture Creation Time: " + stopwatch.Elapsed.ToString());
 
-			original.Dispose();
-			return output;
+			return groupedFaces;
 		}
 
 		private List<Tuple<TextureVertex, TextureVertex, TextureVertex>> GetUVTriangles(List<Face> chunkFaceList)
@@ -295,23 +283,6 @@ namespace PyriteLib
             return rects;
 		}
 
-
-		private void CopyPolygon(Image source, Graphics dest, PointF[] sourcePoly, PointF[] destPoly)
-		{
-			using (GraphicsPath gpdest = new GraphicsPath())
-			using (GraphicsPath gpdestWide = new GraphicsPath())
-			{
-				gpdest.AddPolygon(destPoly);
-				gpdestWide.AddPolygon(destPoly);
-				gpdestWide.Widen(Pens.Black);
-
-				//Draw on the Bitmap
-				dest.SetClip(gpdest);
-				dest.SetClip(gpdestWide, CombineMode.Union);
-				dest.DrawImage(source, 0, 0, source.Width, source.Height);
-			}
-		}
-
         public static Bitmap ResizeImage(Image image, int width, int height)
         {
             var destRect = new Rectangle(0, 0, width, height);
@@ -337,16 +308,16 @@ namespace PyriteLib
             return destImage;
         }
 
-        private string WriteDebugImage(Image source, string outputPath)
+        private string WriteDebugImage(Image source, string outputPath, string prefix = "error")
         {
             string directory = Path.GetDirectoryName(outputPath);
-            string filename = string.Format("error-{0:yyyy-MM-dd_hh-mm-ss-tt}.bin", DateTime.Now);
+            string filename = string.Format(prefix + "-{0:yyyy-MM-dd_hh-mm-ss-tt}.jpeg", DateTime.Now);
             string newPath = Path.Combine(directory, filename);
 
             if (File.Exists(newPath)) File.Delete(newPath);
             if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
-            source.Save(outputPath, ImageFormat.Jpeg);
+            source.Save(newPath, ImageFormat.Jpeg);
 
             return filename;         
         }

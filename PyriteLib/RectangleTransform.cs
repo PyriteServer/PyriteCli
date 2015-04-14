@@ -10,6 +10,7 @@ namespace PyriteLib
 	// Represents a transform that applies to data within a specific rectangle
 	// Does not currently support rotation.
 	// Everything scaled to 0-1.
+	// Inverse-Y compared to System.Drawing.  Top is > Bottom
 	public class RectangleTransform
 	{
 		private const int PRECISION = 4;
@@ -35,7 +36,7 @@ namespace PyriteLib
 
 		public Rectangle ToRectangle(Size textureSize)
 		{
-			return new Rectangle((int)(Left * textureSize.Width), (int)(Top * textureSize.Height), (int)((Right - Left) * textureSize.Width), (int)((Bottom - Top) * textureSize.Height));
+			return new Rectangle((int)(Left * textureSize.Width), (int)((1-Top) * textureSize.Height), (int)((Right - Left) * textureSize.Width), (int)((Top - Bottom) * textureSize.Height));
 		}
 	}
 }

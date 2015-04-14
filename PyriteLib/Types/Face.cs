@@ -76,13 +76,18 @@ namespace PyriteLib.Types
             }
         }
 
-        public void UpdateTextureVertexIndex(int oldIndex, int newIndex)
+        public void UpdateTextureVertexIndex(int oldIndex, int newIndex, bool retain = true)
         {
             for (int index = 0; index < TextureVertexIndexList.Count(); index++)
             {
                 if (originalTextureVertexIndexList[index] == oldIndex)
                 {
                     TextureVertexIndexList[index] = newIndex;
+
+					if (!retain)
+					{
+						originalTextureVertexIndexList[index] = newIndex;
+					}
                     return;
                 }
             }
@@ -108,5 +113,27 @@ namespace PyriteLib.Types
 
             return b.ToString();
         }
-    }
+	}
+
+	public class SharedTextureVertexEqualityComparer : IEqualityComparer<Face>
+	{
+		public bool Equals(Face x, Face y)
+		{
+			foreach (int vt in x.TextureVertexIndexList)
+			{
+				if (y.TextureVertexIndexList.Contains(vt))
+				{
+					return true;
+				}
+			}
+
+			return false;
+			//return x.TextureVertexIndexList.Intersect(y.TextureVertexIndexList).Any();
+		}
+
+		public int GetHashCode(Face obj)
+		{
+			return 1;
+		}
+	}
 }
