@@ -12,6 +12,7 @@ namespace PyriteLib
 		public bool GenerateEbo { get; set; }
 		public bool GenerateObj { get; set; }
 		public bool AttemptResume { get; set; }
+		public bool ForceCubicalCubes { get; set; }
 		public string Texture { get; set; }
 		public int TextureSliceX { get; set; }
 		public int TextureSliceY { get; set; }

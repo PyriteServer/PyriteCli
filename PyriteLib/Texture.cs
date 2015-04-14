@@ -72,9 +72,9 @@ namespace PyriteLib
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
-		public RectangleTransform[] GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale)
+		public RectangleTransform[] GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale, bool cubical)
 		{
-			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY);
+			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY, cubical);
 
 			if (!chunkFaceList.Any())
 			{
@@ -235,10 +235,10 @@ namespace PyriteLib
 							obj.TextureList[f.TextureVertexIndexList[2] - 1])).ToList();
 		}
 
-		private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY)
+		private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
 		{
-			double tileHeight = obj.Size.YSize / gridHeight;
-			double tileWidth = obj.Size.XSize / gridWidth;
+			double tileHeight = (cubical ? obj.CubicalSize.YSize : obj.Size.YSize) / gridHeight;
+			double tileWidth = (cubical ? obj.CubicalSize.XSize : obj.Size.XSize) / gridWidth;
 
 			double yOffset = tileHeight * tileY;
 			double xOffset = tileWidth * tileX;

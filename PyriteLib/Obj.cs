@@ -19,8 +19,9 @@ namespace PyriteLib
         public List<TextureVertex> TextureList;
 
         public Extent Size { get; set; }
+		public Extent CubicalSize { get; set; }
 
-        private string mtl;
+		private string mtl;
 
 		/// <summary>
 		/// Parse and load an OBJ file into memory.  Will consume memory
@@ -118,9 +119,23 @@ namespace PyriteLib
 		/// <param name="cubeY">Zero based Y index of cube</param>
         public int WriteSpecificCube(string path, int gridHeight, int gridWidth, int gridDepth, int cubeX, int cubeY, int cubeZ, SlicingOptions options)
         {
-            double cubeHeight = Size.YSize / gridHeight;
-            double cubeWidth = Size.XSize / gridWidth;
-			double cubeDepth = Size.ZSize / gridDepth;
+			double cubeHeight;
+			double cubeWidth;
+			double cubeDepth;
+
+			if (options.ForceCubicalCubes)
+			{
+				cubeHeight = CubicalSize.YSize / gridHeight;
+				cubeWidth = CubicalSize.XSize / gridWidth;
+				cubeDepth = CubicalSize.ZSize / gridDepth;
+			}
+			else
+			{
+				cubeHeight = Size.YSize / gridHeight;
+				cubeWidth = Size.XSize / gridWidth;
+				cubeDepth = Size.ZSize / gridDepth;
+			}
+
 
 			double yOffset = cubeHeight * cubeY;
             double xOffset = cubeWidth * cubeX;
@@ -356,6 +371,18 @@ namespace PyriteLib
                 ZMax = VertexList.Max(v => v.Z),
                 ZMin = VertexList.Min(v => v.Z)
             };
+
+			double sideLength = Math.Max(Math.Max(Size.XSize, Size.YSize), Size.ZSize);
+
+			CubicalSize = new Extent
+			{
+				XMin = Size.XMin,
+				YMin = Size.YMin,
+				ZMin = Size.ZMin,
+				XMax = Size.XMin + sideLength,
+				YMax = Size.YMin + sideLength,
+				ZMax = Size.ZMin + sideLength
+			};
         }
 
 		/// <summary>

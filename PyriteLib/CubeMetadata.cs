@@ -12,6 +12,8 @@ namespace PyriteLib
 		public bool[,,] CubeExists { get; set; }
 		public Extent WorldBounds { get; set; }
 
+		public Extent VirtualWorldBounds { get; set; }
+
 		public XyzPoint SetSize { get; set; }
 
         public XyPoint TextureSetSize { get; set; }

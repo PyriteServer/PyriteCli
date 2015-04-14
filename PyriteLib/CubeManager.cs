@@ -39,7 +39,10 @@ namespace PyriteLib
 
 		public void GenerateCubes(string outputPath, SlicingOptions options)
 		{
-			CubeMetadata metadata = new CubeMetadata(size) { WorldBounds = ObjInstance.Size, VertexCount = ObjInstance.VertexList.Count };
+			CubeMetadata metadata = new CubeMetadata(size) {
+				WorldBounds = ObjInstance.Size,
+				VirtualWorldBounds = options.ForceCubicalCubes ? ObjInstance.CubicalSize : ObjInstance.Size,
+				VertexCount = ObjInstance.VertexList.Count };
 
 			// If appropriate, generate textures and save transforms first
 			if (!string.IsNullOrEmpty(options.Texture))
@@ -106,7 +109,7 @@ namespace PyriteLib
 				
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
 
-				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale);
+				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale, options.ForceCubicalCubes);
 				transforms.Add(extent, transform);
             });
 

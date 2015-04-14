@@ -58,8 +58,17 @@ namespace PyriteCli
 							Texture = opt.Texture,
 							TextureScale = opt.scaleTexture,
 							TextureSliceX = opt.txSize,
-							TextureSliceY = opt.tySize
+							TextureSliceY = opt.tySize,
+							ForceCubicalCubes = opt.ForceCubical
 						};
+
+						if (opt.ForceCubical)
+						{
+							int longestGridSide = Math.Max(Math.Max(opt.xSize, opt.ySize), opt.zSize);
+							opt.xSize = opt.ySize = opt.zSize = longestGridSide;
+
+							Console.WriteLine("Due to -ForceCubical grid size is now {0},{0},{0}", longestGridSide);
+						}
 
 						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
 
@@ -141,6 +150,10 @@ namespace PyriteCli
 			Description = "Existing files are not overwritten, but instead skipped")]
 		public bool Resume { get; set; }
 
+		[NamedArgument('c', "forcecubical", Action = ParseAction.StoreTrue,
+			Description = "X Y Z grid dimensions will be equal, and world space will be grown to fill a containing cube.")]
+		public bool ForceCubical { get; set; }
+
 		[PositionalArgument(0, MetaVar = "OUT",
 			Description = "Output folder")]
 		public string OutputPath { get; set; }
@@ -159,6 +172,7 @@ namespace PyriteCli
 			scaleTexture = 1;
 			txSize = 4;
 			tySize = 4;
+			ForceCubical = true;
 		}
 	}
 
