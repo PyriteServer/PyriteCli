@@ -90,8 +90,8 @@ namespace PyriteLib
 			SpatialUtilities.EnumerateSpaceParallel(options.TextureSliceX, options.TextureSliceY, (x, y) =>
 			{
 				// Get extent
-				double tileHeight = this.ObjInstance.Size.YSize / options.TextureSliceY;
-				double tileWidth = this.ObjInstance.Size.XSize / options.TextureSliceX;
+				double tileHeight = (options.ForceCubicalCubes ? this.ObjInstance.CubicalSize.YSize : this.ObjInstance.Size.YSize) / options.TextureSliceY;
+				double tileWidth = (options.ForceCubicalCubes ? this.ObjInstance.CubicalSize.XSize : this.ObjInstance.Size.XSize) / options.TextureSliceX;
 
 				double yOffset = tileHeight * y;
 				double xOffset = tileWidth * x;

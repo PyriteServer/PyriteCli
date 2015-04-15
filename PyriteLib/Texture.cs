@@ -97,12 +97,16 @@ namespace PyriteLib
 
 
 				// Bin pack rects, starting with 1024x1024 and growing to a maximum 16384.
-				Rectangle[] destinationRects = PackTextures(sourceRects, 4096, 4096, 16384);
+				Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 16384);
 
 				// Identify the cropped size of our new texture
 				originalSize = source.Size;
 				newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
 				newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
+
+				// Round new texture size up to nearest power of 2
+				newSize.Width = NextPowerOfTwo(newSize.Width);
+				newSize.Height = NextPowerOfTwo(newSize.Height);
 
 				// Build the new bin packed and cropped texture
 				using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
@@ -321,5 +325,16 @@ namespace PyriteLib
 
             return filename;         
         }
-    }
+
+		private static int NextPowerOfTwo(int x)
+		{
+			x--;
+			x |= (x >> 1);
+			x |= (x >> 2);
+			x |= (x >> 4);
+			x |= (x >> 8);
+			x |= (x >> 16);
+			return (x + 1);
+		}
+	}
 }
