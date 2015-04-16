@@ -3,3 +3,4 @@ before_build:
 - nuget restore
 build:
   verbosity: minimal
+test: off
