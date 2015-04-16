@@ -22,6 +22,7 @@ namespace PyriteLib
 		public Extent CubicalSize { get; set; }
 
 		private string _mtl;
+		private bool _verticesRequireReset;
 
 		/// <summary>
 		/// Parse and load an OBJ file into memory.  Will consume memory
@@ -52,7 +53,9 @@ namespace PyriteLib
             if (linesProcessedCallback != null)
                 linesProcessedCallback(linesProcessed);
 
-            updateSize();                              
+            updateSize();
+
+			_verticesRequireReset = false;                    
         }
 
 		/// <summary>
@@ -157,7 +160,7 @@ namespace PyriteLib
 				ZMax = Size.ZMin + zOffset + cubeDepth
 			};
 
-			return WriteObj(path, newSize, options);
+			return WriteSpecificCube(path, newSize, options);
         }
 
 		/// <summary>
@@ -165,7 +168,7 @@ namespace PyriteLib
 		/// Typically used by WriteObjGridTile(...)
 		/// Returns number of vertices written, or 0 if nothing was written.
 		/// </summary>
-		public int WriteObj(string path, Extent boundries, SlicingOptions options)
+		public int WriteSpecificCube(string path, Extent boundries, SlicingOptions options)
 		{
 			// Quick abort if cube outside of source data dimensions
 			if (boundries.XMin > Size.XMax || boundries.YMin > Size.YMax || boundries.ZMin > Size.ZMax)
@@ -179,7 +182,11 @@ namespace PyriteLib
 
 
 			// Revert all vertices in case we previously changed their indexes
-			FaceList.AsParallel().ForAll(f => f.RevertVertices());
+			if (_verticesRequireReset)
+			{
+				FaceList.AsParallel().ForAll(f => f.RevertVertices());
+				_verticesRequireReset = false;
+			}
 
 			// Get all faces in this cube
 			List<Face> chunkFaceList;
@@ -245,7 +252,8 @@ namespace PyriteLib
                     writer.WriteLine("mtllib " + _mtl);
                 }
 
-                // Write each vertex and update faces				
+				// Write each vertex and update faces		
+				_verticesRequireReset = true;		
                 int newVertexIndex = 0;
 
                 Parallel.ForEach(requiredVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>

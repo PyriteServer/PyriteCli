@@ -135,7 +135,7 @@ namespace PyriteLib
 				if (scale != 1)
 				{
 					var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
-					scaledPacked.Save(outputPath, ImageFormat.Jpeg);
+					scaledPacked.Save(outputPath, ImageFormat.Jpeg);					
 				}
 				else
 				{
@@ -254,7 +254,8 @@ namespace PyriteLib
 				// Intersect and move to group until no more intersections are found.
 				do
 				{
-					matches = remainingFaces.AsParallel().Where(f => matches.Contains(f, new SharedTextureVertexEqualityComparer())).ToList();
+					matches = remainingFaces.AsParallel().Where(f => FacesIntersect(f, matches)).ToList();
+
 					newGroup.AddRange(matches);	
 					foreach (var f in matches)
 					{
@@ -265,6 +266,22 @@ namespace PyriteLib
 			}
 
 			return groupedFaces;
+		}
+
+		private static bool FacesIntersect(Face f, List<Face> matches)
+		{
+			foreach (var m in matches)
+			{
+				foreach (int vt in m.TextureVertexIndexList)
+				{
+					if (f.TextureVertexIndexHash.Contains(vt))
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
 		}
 
 		private List<Tuple<TextureVertex, TextureVertex, TextureVertex>> GetUVTriangles(List<Face> chunkFaceList)
@@ -292,6 +309,9 @@ namespace PyriteLib
 				YMax = obj.Size.YMin + yOffset + tileHeight,
 				ZMax = obj.Size.ZMax
 			};
+
+			if (newSize.XMin > obj.Size.XMax || newSize.YMin > obj.Size.YMax || newSize.ZMin > obj.Size.ZMax)
+				return new List<Face>();
 
 			List<Face> chunkFaceList;
 			chunkFaceList = obj.FaceList.AsParallel().Where(f => f.InExtent(newSize, obj.VertexList)).ToList();

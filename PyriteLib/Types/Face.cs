@@ -13,9 +13,10 @@ namespace PyriteLib.Types
         public const string Prefix = "f";
 
         public int[] VertexIndexList { get; set; }
-        public int[] TextureVertexIndexList { get; set; }     
-        
-        private int[] originalVertexIndexList;
+        public int[] TextureVertexIndexList { get; set; }
+		public HashSet<int> TextureVertexIndexHash { get; set; }
+
+		private int[] originalVertexIndexList;
         private int[] originalTextureVertexIndexList;
 
         public void LoadFromStringArray(string[] data)
@@ -53,6 +54,8 @@ namespace PyriteLib.Types
 
 			VertexIndexList.CopyTo(originalVertexIndexList,0);
 			TextureVertexIndexList.CopyTo(originalTextureVertexIndexList, 0);
+
+			TextureVertexIndexHash = new HashSet<int>(TextureVertexIndexList);
 
         }
 
@@ -114,26 +117,5 @@ namespace PyriteLib.Types
 
             return b.ToString();
         }
-	}
-
-	public class SharedTextureVertexEqualityComparer : IEqualityComparer<Face>
-	{
-		public bool Equals(Face x, Face y)
-		{
-			foreach (int vt in x.TextureVertexIndexList)
-			{
-				if (y.TextureVertexIndexList.Contains(vt))
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		public int GetHashCode(Face obj)
-		{
-			return 1;
-		}
 	}
 }

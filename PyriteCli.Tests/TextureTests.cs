@@ -5,6 +5,7 @@ using PyriteLib;
 using PyriteLib.Types;
 using System.Linq;
 using System.Drawing;
+using System.Diagnostics;
 
 namespace PyriteCli.Tests
 {
@@ -33,6 +34,26 @@ namespace PyriteCli.Tests
 
 			Assert.AreEqual(3, result.Count());
 			Assert.AreEqual(7, result.Sum(g => g.Count()));
+		}
+
+		[TestMethod]
+		public void FindConnectedFacesPerf()
+		{
+			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
+			PrivateType textureType = new PrivateType(typeof(Texture));
+
+			// private RectangleF[] FindUVRectangles(List<List<Face>> groupedFaces)
+			PrivateObject textureObject = new PrivateObject(GetTestTexture());
+
+			// private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
+			List<Face> faces = (List<Face>)textureObject.Invoke("GetFaceList", new Object[] { 2, 2, 0, 1, false });
+
+			Stopwatch watch = Stopwatch.StartNew();
+			for (int i = 0; i < 10; i++)
+			{
+				var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces });
+			}
+			Console.WriteLine("Connected Faces Milliseconds: " + watch.ElapsedMilliseconds);			
 		}
 
 		[TestMethod]
