@@ -1,7 +1,7 @@
 ﻿
 /*
  	Based on the Public Domain MaxRectanglesBinPack.cpp source by Jukka Jylänki
- 	https://github.com/juj/RectangleangleBinPack/
+ 	https://github.com/juj/RectangleBinPack/
  
  	Originally Ported to C# by Sven Magnus
  	Updated to .Net 4.5 by Stefan Gordon

@@ -96,7 +96,7 @@ namespace PyriteLib
 				Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, source.Size, 2);
 
 
-				// Bin pack rects, starting with 1024x1024 and growing to a maximum 16384.
+				// Bin pack rects, growing to a maximum 16384.
 				Rectangle[] destinationRects = PackTextures(sourceRects, 512, 512, 16384);
 
 				// Identify the cropped size of our new texture
@@ -109,56 +109,66 @@ namespace PyriteLib
 				newSize.Height = NextPowerOfTwo(newSize.Height);
 
 				// Build the new bin packed and cropped texture
-				using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
-				{
-					using (Graphics packedGraphics = Graphics.FromImage(packed))
-					{
-						for (int i = 0; i < sourceRects.Length; i++)
-						{
-							packedGraphics.DrawImage(source, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
-						}
-					}
-
-					// Write to disk
-					if (File.Exists(outputPath)) File.Delete(outputPath);
-					if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-
-					if (scale != 1)
-					{
-						var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
-						scaledPacked.Save(outputPath, ImageFormat.Jpeg);
-					}
-					else
-					{
-						packed.Save(outputPath, ImageFormat.Jpeg);
-					}
-				}
+				WriteNewTexture(outputPath, scale, newSize, source, sourceRects, destinationRects);
 
 				// Generate the UV transform array
-				var outputTransforms = new RectangleTransform[sourceRects.Length];
-				for (int i = 0; i < sourceRects.Length; i++)
+				return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
+			}
+		}
+
+		private static void WriteNewTexture(string outputPath, float scale, Size newSize, Image source, Rectangle[] sourceRects, Rectangle[] destinationRects)
+		{
+			using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
+			{
+				using (Graphics packedGraphics = Graphics.FromImage(packed))
 				{
-					Rectangle s = sourceRects[i];
-					Rectangle d = destinationRects[i];
-
-					var transform = new RectangleTransform
+					for (int i = 0; i < sourceRects.Length; i++)
 					{
-						// figure out total image size and convert rects to percentages
-						Top = 1 - (s.Top / (double)originalSize.Height),
-						Bottom = 1 - (s.Bottom / (double)originalSize.Height),
-						Left = s.Left / (double)originalSize.Width,
-						Right = s.Right / (double)originalSize.Width,
-						OffsetX = (s.Left / (double)originalSize.Width) - (d.Left / (double)newSize.Width),
-						OffsetY = ((s.Top / (double)originalSize.Height) - (d.Top / (double)newSize.Height)),
-						ScaleX = (double)originalSize.Width / (double)newSize.Width,
-						ScaleY = (double)originalSize.Height / (double)newSize.Height
-					};
-
-					outputTransforms[i] = transform;
+						packedGraphics.DrawImage(source, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
+					}
 				}
 
-				return outputTransforms;
+				// Write to disk
+				if (File.Exists(outputPath)) File.Delete(outputPath);
+				if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+
+				if (scale != 1)
+				{
+					var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
+					scaledPacked.Save(outputPath, ImageFormat.Jpeg);
+				}
+				else
+				{
+					packed.Save(outputPath, ImageFormat.Jpeg);
+				}
 			}
+		}
+
+		private static RectangleTransform[] GenerateUVTransforms(Size originalSize, Size newSize, Rectangle[] sourceRects, Rectangle[] destinationRects)
+		{
+			var outputTransforms = new RectangleTransform[sourceRects.Length];
+			for (int i = 0; i < sourceRects.Length; i++)
+			{
+				Rectangle s = sourceRects[i];
+				Rectangle d = destinationRects[i];
+
+				var transform = new RectangleTransform
+				{
+					// figure out total image size and convert rects to percentages
+					Top = 1 - (s.Top / (double)originalSize.Height),
+					Bottom = 1 - (s.Bottom / (double)originalSize.Height),
+					Left = s.Left / (double)originalSize.Width,
+					Right = s.Right / (double)originalSize.Width,
+					OffsetX = (s.Left / (double)originalSize.Width) - (d.Left / (double)newSize.Width),
+					OffsetY = ((s.Top / (double)originalSize.Height) - (d.Top / (double)newSize.Height)),
+					ScaleX = (double)originalSize.Width / (double)newSize.Width,
+					ScaleY = (double)originalSize.Height / (double)newSize.Height
+				};
+
+				outputTransforms[i] = transform;
+			}
+
+			return outputTransforms;
 		}
 
 		private static Rectangle[] TransformUVRectToBitmapRect(RectangleF[] uvRects, Size textureSize, int pixelBuffer)
