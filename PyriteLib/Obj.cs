@@ -21,7 +21,7 @@ namespace PyriteLib
         public Extent Size { get; set; }
 		public Extent CubicalSize { get; set; }
 
-		private string mtl;
+		private string _mtl;
 
 		/// <summary>
 		/// Parse and load an OBJ file into memory.  Will consume memory
@@ -55,6 +55,11 @@ namespace PyriteLib
             updateSize();                              
         }
 
+		/// <summary>
+		/// Updates all UV coordinates (Texture Vertex) based on
+		/// the rectangular transforms which may be included in
+		/// slicing options if texture partitioning has occurred.
+		/// </summary>
 		public void TransformUVs(SlicingOptions options)
 		{
 			Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
@@ -94,17 +99,18 @@ namespace PyriteLib
 					}
 					else
 					{
-                        //var bestTransforms = options.UVTransforms[extent].OrderBy(
-                        //   t => Math.Min(Math.Abs(t.Left - uv.X), Math.Abs(t.Right - uv.X)) + Math.Min(Math.Abs(t.Top - uv.Y), Math.Abs(t.Bottom - uv.Y))).Take(4).ToList();
-
 						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[extent].Count());
 					}
 				}
 
-				var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
-				var relevantTransforms = options.UVTransforms[extent];
-				if (relevantTransforms.Any() && notTransformedUVs.Any())
-				 options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
+				// Write out a marked up image file showing where lost UV's occured
+				if (options.Debug)
+				{
+					var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
+					var relevantTransforms = options.UVTransforms[extent];
+					if (relevantTransforms.Any() && notTransformedUVs.Any())
+						options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
+				}
             }
 		}
 
@@ -160,36 +166,20 @@ namespace PyriteLib
 		/// Returns number of vertices written, or 0 if nothing was written.
 		/// </summary>
 		public int WriteObj(string path, Extent boundries, SlicingOptions options)
-        {
+		{
+			// Quick abort if cube outside of source data dimensions
+			if (boundries.XMin > Size.XMax || boundries.YMin > Size.YMax || boundries.ZMin > Size.ZMax)
+				return 0;
+
 			string objPath = path + ".obj";
 			string eboPath = path + ".ebo";
-			bool objRequiresDelete = false, eboRequiresDelete = false;
 
 			// Delete files or handle resume if the required ones already exist
-			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }						
+			CleanOldFiles(options, objPath, eboPath);
 
-			if (options.GenerateObj)
-			{
-				objRequiresDelete = File.Exists(objPath);
-			}
 
-			if (options.GenerateEbo)
-			{
-				eboRequiresDelete = File.Exists(eboPath);
-			}
-
-			if (options.AttemptResume && objRequiresDelete == options.GenerateObj && eboRequiresDelete == options.GenerateEbo)
-			{
-				return 1;
-			}
-			else
-			{
-				if (objRequiresDelete) File.Delete(objPath);
-				if (eboRequiresDelete) File.Delete(eboPath);
-			}
-
-            // Revert all vertices in case we previously changed their indexes
-            FaceList.AsParallel().ForAll(f => f.RevertVertices());
+			// Revert all vertices in case we previously changed their indexes
+			FaceList.AsParallel().ForAll(f => f.RevertVertices());
 
 			// Get all faces in this cube
 			List<Face> chunkFaceList;
@@ -198,7 +188,7 @@ namespace PyriteLib
 			if (!chunkFaceList.Any())
 				return 0;
 
-            Trace.TraceInformation("{0} faces", chunkFaceList.Count);
+			Trace.TraceInformation("{0} faces", chunkFaceList.Count);
 
 			if (options.GenerateEbo)
 			{
@@ -210,10 +200,25 @@ namespace PyriteLib
 				WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList);
 			}
 
-            return chunkFaceList.Count;
-        }
+			return chunkFaceList.Count;
+		}
 
-        private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList)
+		private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath)
+		{
+			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
+
+			if (options.GenerateObj)
+			{
+				File.Delete(objPath);
+			}
+
+			if (options.GenerateEbo)
+			{
+				File.Delete(eboPath);
+			}
+		}
+
+		private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList)
         {
 			// Build a list of vertices indexes needed for these faces
 			List<int> requiredVertices = null;
@@ -235,9 +240,9 @@ namespace PyriteLib
                 {
                     writer.WriteLine("mtllib " + mtlOverride);
                 }
-                else if (!string.IsNullOrEmpty(mtl))
+                else if (!string.IsNullOrEmpty(_mtl))
                 {
-                    writer.WriteLine("mtllib " + mtl);
+                    writer.WriteLine("mtllib " + _mtl);
                 }
 
                 // Write each vertex and update faces				
@@ -398,7 +403,7 @@ namespace PyriteLib
                 switch (parts[0])
                 {
                     case "mtllib":
-                        mtl = parts[1];
+                        _mtl = parts[1];
                         break;
                     case "v":
                         Vertex v = new Vertex();

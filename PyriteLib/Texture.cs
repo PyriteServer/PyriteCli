@@ -97,7 +97,7 @@ namespace PyriteLib
 
 
 				// Bin pack rects, starting with 1024x1024 and growing to a maximum 16384.
-				Rectangle[] destinationRects = PackTextures(sourceRects, 1024, 1024, 16384);
+				Rectangle[] destinationRects = PackTextures(sourceRects, 512, 512, 16384);
 
 				// Identify the cropped size of our new texture
 				originalSize = source.Size;
@@ -196,7 +196,33 @@ namespace PyriteLib
 				rects[i] = new RectangleF(minX, maxY, maxX - minX, maxY - minY);
 			}
 
-			return rects;
+			// Remove rectangles fully contained by others
+			List<RectangleF> cleanRects = new List<RectangleF>();
+			for (int i = 0; i < rects.Length; i++)
+			{
+				bool containedElsewhere = false;
+				for (int j = 0; j < rects.Length; j++)
+				{
+					if (i != j)
+					{
+						if (rects[j].Contains(rects[i]))
+						{
+							containedElsewhere = true;
+							break;
+						}
+					}
+				}
+				if (!containedElsewhere) cleanRects.Add(rects[i]);
+			}
+
+			if (cleanRects.Count() < rects.Length)
+			{
+				Trace.TraceInformation("Removed {0} obscured rectangles", rects.Length - cleanRects.Count());
+			}
+
+			return cleanRects.ToArray();
+
+			//return rects;
         }
 
 		private static List<List<Face>> FindConnectedFaces(List<Face> faces)

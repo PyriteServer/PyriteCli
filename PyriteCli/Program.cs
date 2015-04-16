@@ -32,7 +32,7 @@ namespace PyriteCli
 					// Check if we are processing an image or a mesh
 					if (Path.GetExtension(path).ToUpper().EndsWith("JPG"))
 					{
-						ImageTile tiler = new ImageTile(path, opt.xSize, opt.ySize);
+						ImageTile tiler = new ImageTile(path, opt.XSize, opt.YSize);
 						tiler.GenerateTiles(opt.OutputPath);
 					}
 					else if (Path.GetExtension(path).ToUpper().EndsWith("OBJ"))
@@ -49,28 +49,28 @@ namespace PyriteCli
 							outputPath = Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path));
 						}
 
-							var options = new SlicingOptions
+						var options = new SlicingOptions
 						{
 							OverrideMtl = opt.MtlOverride,
 							GenerateEbo = opt.Ebo,
-							AttemptResume = opt.Resume,
+							Debug = opt.Debug,
 							GenerateObj = true,
 							Texture = opt.Texture,
-							TextureScale = opt.scaleTexture,
-							TextureSliceX = opt.txSize,
-							TextureSliceY = opt.tySize,
+							TextureScale = opt.ScaleTexture,
+							TextureSliceX = opt.TextureXSize,
+							TextureSliceY = opt.TextureYSize,
 							ForceCubicalCubes = opt.ForceCubical
 						};
 
 						if (opt.ForceCubical)
 						{
-							int longestGridSide = Math.Max(Math.Max(opt.xSize, opt.ySize), opt.zSize);
-							opt.xSize = opt.ySize = opt.zSize = longestGridSide;
+							int longestGridSide = Math.Max(Math.Max(opt.XSize, opt.YSize), opt.ZSize);
+							opt.XSize = opt.YSize = opt.ZSize = longestGridSide;
 
 							Console.WriteLine("Due to -ForceCubical grid size is now {0},{0},{0}", longestGridSide);
 						}
 
-						CubeManager manager = new CubeManager(path, opt.xSize, opt.ySize, opt.zSize);
+						CubeManager manager = new CubeManager(path, opt.XSize, opt.YSize, opt.ZSize);
 
 						if (opt.MarkupUV)
 						{
@@ -108,27 +108,27 @@ namespace PyriteCli
 	{
 		[NamedArgument('x', "xsize", Action = ParseAction.Store,
 			Description = "The number of times to subdivide in the X dimension.  Default 10.")]
-		public int xSize { get; set; }
+		public int XSize { get; set; }
 
 		[NamedArgument('y', "ysize", Action = ParseAction.Store,
 			Description = "The number of times to subdivide in the Y dimension.  Default 10.")]
-		public int ySize { get; set; }
+		public int YSize { get; set; }
 
 		[NamedArgument('z', "zsize", Action = ParseAction.Store,
 			Description = "The number of times to subdivide in the Z dimension.  Default 10.")]
-		public int zSize { get; set; }
+		public int ZSize { get; set; }
 
 		[NamedArgument('u', "texturex", Action = ParseAction.Store,
 			Description = "The number of times to subdivide texture in the X dimension. Default 4.")]
-		public int txSize { get; set; }
+		public int TextureXSize { get; set; }
 
 		[NamedArgument('v', "texturey", Action = ParseAction.Store,
 			Description = "The number of times to subdivide texture in the Y dimension. Default 4.")]
-		public int tySize { get; set; }
+		public int TextureYSize { get; set; }
 
 		[NamedArgument('s', "scaletexture", Action = ParseAction.Store,
 			Description = "A number between 0 and 1 telling Cuber how to resize/scale the texture when using -t.  Default 1.")]
-		public float scaleTexture { get; set; }
+		public float ScaleTexture { get; set; }
 
 		[NamedArgument('m', "mtl", Action = ParseAction.Store,
 			Description = "Override the MTL field in output obj files. e.g. -z model.mtl")]
@@ -146,13 +146,13 @@ namespace PyriteCli
 			Description = "Draws UVW's on a texture")]
 		public bool MarkupUV { get; set; }
 
-		[NamedArgument('r', "resume", Action = ParseAction.StoreTrue,
-			Description = "Existing files are not overwritten, but instead skipped")]
-		public bool Resume { get; set; }
-
 		[NamedArgument('c', "forcecubical", Action = ParseAction.StoreTrue,
 			Description = "X Y Z grid dimensions will be equal, and world space will be grown to fill a containing cube.")]
 		public bool ForceCubical { get; set; }
+
+		[NamedArgument('d', "debug", Action = ParseAction.StoreTrue,
+			Description = "Generate various additional debug data during error states")]
+		public bool Debug { get; set; }
 
 		[PositionalArgument(0, MetaVar = "OUT",
 			Description = "Output folder")]
@@ -166,13 +166,14 @@ namespace PyriteCli
 
 		public Options()
 		{
-			xSize = 10;
-			ySize = 10;
-			zSize = 10;
-			scaleTexture = 1;
-			txSize = 4;
-			tySize = 4;
+			XSize = 10;
+			YSize = 10;
+			ZSize = 10;
+			ScaleTexture = 1;
+			TextureXSize = 4;
+			TextureYSize = 4;
 			ForceCubical = true;
+			Debug = false;
 		}
 	}
 
