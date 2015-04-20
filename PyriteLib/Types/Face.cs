@@ -61,9 +61,9 @@ namespace PyriteLib.Types
 
         public bool InExtent(Extent extent, List<Vertex> vertexList)
         {
-            Vertex relevantVertex = VertexIndexList.Select(vi => vertexList[vi - 1]).OrderBy(v => v.X).ThenBy(v => v.Y).First();
+            //Vertex relevantVertex = VertexIndexList.Select(vi => vertexList[vi - 1]).OrderBy(v => v.X).ThenBy(v => v.Y).First();
 
-            if (relevantVertex.InExtent(extent)) return true;
+            if (vertexList[VertexIndexList[0] - 1].InExtent(extent)) return true;
 
             return false;
         }

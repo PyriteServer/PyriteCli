@@ -28,6 +28,11 @@ namespace PyriteCli.Tests
 
 			faces.Add(new Face() { TextureVertexIndexList = new int[] { 14, 15, 16 } });
 
+			foreach (var f in faces)
+			{
+				f.TextureVertexIndexHash = new HashSet<int>(f.TextureVertexIndexList);
+			}
+
 			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
 			PrivateType texture = new PrivateType(typeof(Texture));
 			var result = (IEnumerable<IEnumerable<Face>>)texture.InvokeStatic("FindConnectedFaces", new Object[] { faces });
@@ -73,7 +78,7 @@ namespace PyriteCli.Tests
 			RectangleF[] rectangles = (RectangleF[])textureObject.Invoke("FindUVRectangles", new Object[] { result });
 
 			// We got our rects
-			Assert.AreEqual(111, rectangles.Count());
+			Assert.AreEqual(113, rectangles.Count());
 
 			// None of them are contained inside other ones
 			for (int i = 0; i < rectangles.Length; i++)
