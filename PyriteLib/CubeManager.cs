@@ -17,7 +17,7 @@ namespace PyriteLib
 		public Obj ObjInstance { get; set; }
 		private XyzPoint size;
 
-		public CubeManager(string inputFile, int xSize, int ySize, int zSize)
+		public CubeManager(string inputFile, int xSize, int ySize, int zSize, SlicingOptions options)
 		{
 			size = new XyzPoint
 			{
@@ -29,7 +29,7 @@ namespace PyriteLib
 			// Parse and load the object
 			Trace.TraceInformation("Loading {0}", inputFile);
 			ObjInstance = new Obj();
-			ObjInstance.LoadObj(inputFile, ShowLinesLoaded);
+			ObjInstance.LoadObj(inputFile, ShowLinesLoaded, new XyzPoint { X = xSize, Y = ySize, Z = zSize }, options);
 
 			// Write out a bit of info about the object
 			Trace.TraceInformation("Loaded {0} vertices and {1} faces", ObjInstance.VertexList.Count(), ObjInstance.FaceList.Count());
@@ -61,7 +61,7 @@ namespace PyriteLib
 			{
 				Trace.TraceInformation("Processing cube [{0}, {1}, {2}]", x, y, z);
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));
-				int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, size.X, size.Y, size.Z, x, y, z, options);
+				int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, x, y, z, options);
 				metadata.CubeExists[x, y, z] = vertexCount > 0;
 			});			
 

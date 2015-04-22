@@ -101,7 +101,7 @@ namespace PyriteCli.Tests
 				ForceCubicalCubes = false
 			};
 
-			CubeManager manager = new CubeManager("model.obj", 2, 2, 2);
+			CubeManager manager = new CubeManager("model.obj", 2, 2, 2, options);
 
 			return new Texture(manager.ObjInstance);
 		}

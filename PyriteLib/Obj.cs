@@ -16,6 +16,7 @@ namespace PyriteLib
 
         public List<Vertex> VertexList;
         public List<Face> FaceList;
+		public List<Face>[,,] FaceMatrix;
         public List<TextureVertex> TextureList;
 
         public Extent Size { get; set; }
@@ -30,10 +31,11 @@ namespace PyriteLib
 		/// </summary>
 		/// <param name="path">path to obj file on disk</param>
 		/// <param name="linesProcessedCallback">callback for status updates</param>
-        public void LoadObj(string path, Action<int> linesProcessedCallback)
+        public void LoadObj(string path, Action<int> linesProcessedCallback, XyzPoint gridSize, SlicingOptions options)
         {
             VertexList = new List<Vertex>();
             FaceList = new List<Face>();
+			FaceMatrix = new List<Face>[gridSize.X, gridSize.Y, gridSize.Z];
             TextureList = new List<TextureVertex>();
 
             var input = File.ReadLines(path);
@@ -55,8 +57,39 @@ namespace PyriteLib
 
             updateSize();
 
+			populateMatrix(FaceList, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size);
+
 			_verticesRequireReset = false;                    
         }
+
+		private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size)
+		{
+			// World to cube ratios
+			double xOffset = 0 - size.XMin;
+			double xRatio = matrix.GetLength(0) / (size.XSize + 0.00000001);
+
+			double yOffset = 0 - size.YMin;
+			double yRatio = matrix.GetLength(1) / (size.YSize + 0.00000001);
+
+			double zOffset = 0 - size.ZMin;
+			double zRatio = matrix.GetLength(2) / (size.ZSize + 0.00000001);
+
+			// Initialize matrix
+			SpatialUtilities.EnumerateSpace(matrix.GetLength(0), matrix.GetLength(1), matrix.GetLength(2), 
+				(x, y, z) => matrix[x, y, z] = new List<Face>());
+
+			Parallel.ForEach(faces, (face) =>
+			{
+				Vertex vertex = VertexList[face.VertexIndexList[0] - 1];
+
+				int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
+				int y = (int)Math.Floor((vertex.Y + yOffset) * yRatio);
+				int z = (int)Math.Floor((vertex.Z + zOffset) * zRatio);
+
+				matrix[x, y, z].Add(face);
+			});
+		}
+
 
 		/// <summary>
 		/// Updates all UV coordinates (Texture Vertex) based on
@@ -126,54 +159,8 @@ namespace PyriteLib
 		/// <param name="gridWidth">X size of grid</param>
 		/// <param name="cubeX">Zero based X index of cube</param>
 		/// <param name="cubeY">Zero based Y index of cube</param>
-        public int WriteSpecificCube(string path, int gridHeight, int gridWidth, int gridDepth, int cubeX, int cubeY, int cubeZ, SlicingOptions options)
+        public int WriteSpecificCube(string path, int cubeX, int cubeY, int cubeZ, SlicingOptions options)
         {
-			double cubeHeight;
-			double cubeWidth;
-			double cubeDepth;
-
-			if (options.ForceCubicalCubes)
-			{
-				cubeHeight = CubicalSize.YSize / gridHeight;
-				cubeWidth = CubicalSize.XSize / gridWidth;
-				cubeDepth = CubicalSize.ZSize / gridDepth;
-			}
-			else
-			{
-				cubeHeight = Size.YSize / gridHeight;
-				cubeWidth = Size.XSize / gridWidth;
-				cubeDepth = Size.ZSize / gridDepth;
-			}
-
-
-			double yOffset = cubeHeight * cubeY;
-            double xOffset = cubeWidth * cubeX;
-			double zOffset = cubeDepth * cubeZ;
-
-			Extent newSize = new Extent
-            {
-                XMin = Size.XMin + xOffset,
-                YMin = Size.YMin + yOffset,
-				ZMin = Size.ZMin + zOffset,				
-                XMax = Size.XMin + xOffset + cubeWidth,
-                YMax = Size.YMin + yOffset + cubeHeight,
-				ZMax = Size.ZMin + zOffset + cubeDepth
-			};
-
-			return WriteSpecificCube(path, newSize, options);
-        }
-
-		/// <summary>
-		/// Writes an OBJ uses vertices and faces contained within the provided boundries.
-		/// Typically used by WriteObjGridTile(...)
-		/// Returns number of vertices written, or 0 if nothing was written.
-		/// </summary>
-		public int WriteSpecificCube(string path, Extent boundries, SlicingOptions options)
-		{
-			// Quick abort if cube outside of source data dimensions
-			if (boundries.XMin > Size.XMax || boundries.YMin > Size.YMax || boundries.ZMin > Size.ZMax)
-				return 0;
-
 			string objPath = path + ".obj";
 			string eboPath = path + ".ebo";
 
@@ -190,7 +177,7 @@ namespace PyriteLib
 
 			// Get all faces in this cube
 			List<Face> chunkFaceList;
-			chunkFaceList = FaceList.AsParallel().Where(v => v.InExtent(boundries, VertexList)).ToList();
+			chunkFaceList = FaceMatrix[cubeX, cubeY, cubeZ];
 
 			if (!chunkFaceList.Any())
 				return 0;
@@ -209,6 +196,7 @@ namespace PyriteLib
 
 			return chunkFaceList.Count;
 		}
+		
 
 		private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath)
 		{

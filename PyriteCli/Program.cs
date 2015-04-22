@@ -70,7 +70,7 @@ namespace PyriteCli
 							Console.WriteLine("Due to -ForceCubical grid size is now {0},{0},{0}", longestGridSide);
 						}
 
-						CubeManager manager = new CubeManager(path, opt.XSize, opt.YSize, opt.ZSize);
+						CubeManager manager = new CubeManager(path, opt.XSize, opt.YSize, opt.ZSize, options);
 
 						if (opt.MarkupUV)
 						{
