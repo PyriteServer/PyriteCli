@@ -64,21 +64,27 @@ namespace PyriteLib
 
 		private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size)
 		{
+			Trace.TraceInformation("Partitioning Faces.");
+
+			int xLength = matrix.GetLength(0);
+			int yLength = matrix.GetLength(1);
+			int zLength = matrix.GetLength(2);
+
 			// World to cube ratios
 			double xOffset = 0 - size.XMin;
-			double xRatio = matrix.GetLength(0) / (size.XSize + 0.00000001);
+			double xRatio = xLength / (size.XSize);
 
 			double yOffset = 0 - size.YMin;
-			double yRatio = matrix.GetLength(1) / (size.YSize + 0.00000001);
+			double yRatio = yLength / (size.YSize);
 
 			double zOffset = 0 - size.ZMin;
-			double zRatio = matrix.GetLength(2) / (size.ZSize + 0.00000001);
+			double zRatio = zLength / (size.ZSize);
 
 			// Initialize matrix
-			SpatialUtilities.EnumerateSpace(matrix.GetLength(0), matrix.GetLength(1), matrix.GetLength(2), 
+			SpatialUtilities.EnumerateSpace(xLength, yLength, zLength, 
 				(x, y, z) => matrix[x, y, z] = new List<Face>());
 
-			Parallel.ForEach(faces, (face) =>
+			foreach(var face in faces)
 			{
 				Vertex vertex = VertexList[face.VertexIndexList[0] - 1];
 
@@ -86,8 +92,12 @@ namespace PyriteLib
 				int y = (int)Math.Floor((vertex.Y + yOffset) * yRatio);
 				int z = (int)Math.Floor((vertex.Z + zOffset) * zRatio);
 
+				if (x == xLength) x--;
+				if (y == yLength) y--;
+				if (z == zLength) z--;
+
 				matrix[x, y, z].Add(face);
-			});
+			}
 		}
 
 
