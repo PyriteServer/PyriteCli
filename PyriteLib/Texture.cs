@@ -73,7 +73,7 @@ namespace PyriteLib
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
 		public RectangleTransform[] GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale, bool cubical)
-		{
+		{                        
 			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY, cubical);
 
 			if (!chunkFaceList.Any())
@@ -93,7 +93,7 @@ namespace PyriteLib
 				// Identify blob rectangles
 				var groupedFaces = FindConnectedFaces(chunkFaceList);
 				var uvRects = FindUVRectangles(groupedFaces);
-				Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, source.Size, 2);
+				Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, source.Size, 3);
 
 
 				// Bin pack rects, growing to a maximum 16384.
@@ -294,28 +294,23 @@ namespace PyriteLib
 
 		private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
 		{
-			double tileHeight = (cubical ? obj.CubicalSize.YSize : obj.Size.YSize) / gridHeight;
-			double tileWidth = (cubical ? obj.CubicalSize.XSize : obj.Size.XSize) / gridWidth;
+            int xRatio = obj.FaceMatrix.GetLength(0) / gridWidth;
+            int yRatio = obj.FaceMatrix.GetLength(1) / gridHeight;
 
-			double yOffset = tileHeight * tileY;
-			double xOffset = tileWidth * tileX;
+            List<Face> result = new List<Face>();
 
-			Extent newSize = new Extent
-			{
-				XMin = obj.Size.XMin + xOffset,
-				YMin = obj.Size.YMin + yOffset,
-				ZMin = obj.Size.ZMin,
-				XMax = obj.Size.XMin + xOffset + tileWidth,
-				YMax = obj.Size.YMin + yOffset + tileHeight,
-				ZMax = obj.Size.ZMax
-			};
+            for (int x = tileX * xRatio; x <= (tileX * xRatio) + xRatio; x++)
+            {
+                for (int y = tileY * yRatio; y <= (tileY * yRatio) + yRatio; y++)
+                {
+                    for (int z = 0; z < obj.FaceMatrix.GetLength(2); z++)
+                    {
+                        result.AddRange(obj.FaceMatrix[x, y, z]);
+                    }
+                }
+            }
 
-			if (newSize.XMin > obj.Size.XMax || newSize.YMin > obj.Size.YMax || newSize.ZMin > obj.Size.ZMax)
-				return new List<Face>();
-
-			List<Face> chunkFaceList;
-			chunkFaceList = obj.FaceList.AsParallel().Where(f => f.InExtent(newSize, obj.VertexList)).ToList();
-			return chunkFaceList;
+            return result;
 		}
 
 		private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
