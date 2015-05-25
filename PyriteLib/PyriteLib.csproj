@@ -53,8 +53,9 @@
     <Compile Include="SlicingOptions.cs" />
     <Compile Include="SpatialUtilities.cs" />
     <Compile Include="Texture.cs" />
+    <Compile Include="Vector3D.cs" />
     <Compile Include="XyPoint.cs" />
-    <Compile Include="XyzPoint.cs" />
+    <Compile Include="Vector3.cs" />
     <Compile Include="Extent.cs" />
     <Compile Include="CubeManager.cs" />
     <Compile Include="CubeMetadata.cs" />

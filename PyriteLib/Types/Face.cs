@@ -68,13 +68,18 @@ namespace PyriteLib.Types
             return false;
         }
 
-        public void UpdateVertexIndex(int oldIndex, int newIndex)
+        public void UpdateVertexIndex(int oldIndex, int newIndex, bool retain = true)
         {           
             for(int index = 0; index < VertexIndexList.Count(); index++)
             {
                 if (originalVertexIndexList[index] == oldIndex)
                 {
                     VertexIndexList[index] = newIndex;
+
+                    if (!retain)
+                    {
+                        originalVertexIndexList[index] = newIndex;
+                    }
                     return;
                 }
             }

@@ -15,11 +15,11 @@ namespace PyriteLib
         private readonly string TextureSubDirectory = "texture";
 
 		public Obj ObjInstance { get; set; }
-		private XyzPoint size;
+		private Vector3 size;
 
 		public CubeManager(string inputFile, int xSize, int ySize, int zSize, SlicingOptions options)
 		{
-			size = new XyzPoint
+			size = new Vector3
 			{
 				X = xSize,
 				Y = ySize,
@@ -29,7 +29,7 @@ namespace PyriteLib
 			// Parse and load the object
 			Trace.TraceInformation("Loading {0}", inputFile);
 			ObjInstance = new Obj();
-			ObjInstance.LoadObj(inputFile, ShowLinesLoaded, new XyzPoint { X = xSize, Y = ySize, Z = zSize }, options);
+			ObjInstance.LoadObj(inputFile, ShowLinesLoaded, new Vector3 { X = xSize, Y = ySize, Z = zSize }, options);
 
 			// Write out a bit of info about the object
 			Trace.TraceInformation("Loaded {0} vertices and {1} faces", ObjInstance.VertexList.Count(), ObjInstance.FaceList.Count());

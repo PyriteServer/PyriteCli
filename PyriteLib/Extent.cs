@@ -19,6 +19,9 @@ namespace PyriteLib
         public double YSize { get { return YMax - YMin; } }
         public double ZSize { get { return ZMax - ZMin; } }
 
+        public Vector3D MaxCorner { get { return new Vector3D(XMax, YMax, ZMax); } }
+        public Vector3D MinCorner { get { return new Vector3D(XMin, YMin, ZMin); } }
+
 
     }
 }

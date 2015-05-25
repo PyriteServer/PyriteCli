@@ -31,7 +31,7 @@ namespace PyriteLib
 		/// </summary>
 		/// <param name="path">path to obj file on disk</param>
 		/// <param name="linesProcessedCallback">callback for status updates</param>
-        public void LoadObj(string path, Action<int> linesProcessedCallback, XyzPoint gridSize, SlicingOptions options)
+        public void LoadObj(string path, Action<int> linesProcessedCallback, Vector3 gridSize, SlicingOptions options)
         {
             VertexList = new List<Vertex>();
             FaceList = new List<Face>();
@@ -84,20 +84,20 @@ namespace PyriteLib
 			SpatialUtilities.EnumerateSpace(xLength, yLength, zLength, 
 				(x, y, z) => matrix[x, y, z] = new List<Face>());
 
-			foreach(var face in faces)
-			{
-				Vertex vertex = VertexList[face.VertexIndexList[0] - 1];
+            foreach (var face in faces)
+            {
+                Vertex vertex = VertexList[face.VertexIndexList[0] - 1];
 
-				int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
-				int y = (int)Math.Floor((vertex.Y + yOffset) * yRatio);
-				int z = (int)Math.Floor((vertex.Z + zOffset) * zRatio);
+                int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
+                int y = (int)Math.Floor((vertex.Y + yOffset) * yRatio);
+                int z = (int)Math.Floor((vertex.Z + zOffset) * zRatio);
 
-				if (x == xLength) x--;
-				if (y == yLength) y--;
-				if (z == zLength) z--;
+                if (x == xLength) x--;
+                if (y == yLength) y--;
+                if (z == zLength) z--;
 
-				matrix[x, y, z].Add(face);
-			}
+                matrix[x, y, z].Add(face);               
+            }
 		}
 
 
@@ -192,6 +192,8 @@ namespace PyriteLib
 			if (!chunkFaceList.Any())
 				return 0;
 
+            CropCube(chunkFaceList, cubeX, cubeY, cubeZ, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size); ;
+
 			Trace.TraceInformation("{0} faces", chunkFaceList.Count);
 
 			if (options.GenerateEbo)
@@ -206,9 +208,96 @@ namespace PyriteLib
 
 			return chunkFaceList.Count;
 		}
-		
 
-		private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath)
+        private void CropCube(List<Face> chunkFaceList, int cubeX, int cubeY, int cubeZ, List<Face>[,,] matrix, Extent size)
+        {
+            double cubeHeight;
+            double cubeWidth;
+            double cubeDepth;
+
+            cubeHeight = size.YSize / matrix.GetLength(1);
+            cubeWidth = size.XSize / matrix.GetLength(0);
+            cubeDepth = size.ZSize / matrix.GetLength(2);       
+
+            double yOffset = cubeHeight * cubeY;
+            double xOffset = cubeWidth * cubeX;
+            double zOffset = cubeDepth * cubeZ;
+
+            Extent cubeExtent = new Extent
+            {
+                XMin = size.XMin + xOffset,
+                YMin = size.YMin + yOffset,
+                ZMin = size.ZMin + zOffset,
+                XMax = size.XMin + xOffset + cubeWidth,
+                YMax = size.YMin + yOffset + cubeHeight,
+                ZMax = size.ZMin + zOffset + cubeDepth
+            };
+
+            Dictionary<Face, List<Vertex>> facesToRepair = new Dictionary<Face, List<Vertex>>();
+
+            // Enumerate vertices for ones crossing bounds
+            foreach(var face in chunkFaceList)
+            {
+                var vertices = FindOutOfBoundVertices(face, cubeExtent);
+
+                if (vertices.Any())
+                {
+                    facesToRepair.Add(face, vertices);
+                }            
+            }
+
+            foreach(var face in facesToRepair.Keys)
+            {
+                // Type 1 - yields two triangles
+                if (facesToRepair[face].Count == 1)
+                {
+
+                }
+                // Type 2 - yields single triangle
+                else
+                {
+                    Vertex[] croppedVertices = facesToRepair[face].ToArray();
+                    Vertex[] newVertices = new Vertex[2];
+                                        
+                    // Find the vertex we are keeping
+                    var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);
+                    Vertex homeVertex = allVerts.Except(croppedVertices).First();
+
+                    for (int i = 0; i < 2; i++)
+                    {
+                        var intersection = SpatialUtilities.CheckLineBox(
+                                                cubeExtent.MinCorner,
+                                                cubeExtent.MaxCorner,                                                
+                                                new Vector3D(croppedVertices[i]),
+                                                new Vector3D(homeVertex));
+
+                        int length = VertexList.Count();
+                        VertexList.Add(new Vertex { Index = length + 1, X = intersection.X, Y = intersection.Y, Z = intersection.Z });
+                        face.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
+                    }
+                }
+
+            }
+        }
+
+        private List<Vertex> FindOutOfBoundVertices(Face face, Extent extent)
+        {
+            List<Vertex> result = new List<Vertex>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                Vertex vertex = VertexList[face.VertexIndexList[i] - 1];
+
+                if (!vertex.InExtent(extent))
+                {
+                    result.Add(vertex);
+                }
+            }
+
+            return result;
+        }
+
+        private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath)
 		{
 			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
 

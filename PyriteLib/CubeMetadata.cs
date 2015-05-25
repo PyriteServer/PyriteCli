@@ -14,13 +14,13 @@ namespace PyriteLib
 
 		public Extent VirtualWorldBounds { get; set; }
 
-		public XyzPoint SetSize { get; set; }
+		public Vector3 SetSize { get; set; }
 
         public XyPoint TextureSetSize { get; set; }
 
         public int VertexCount { get; set; }
 
-        public CubeMetadata(XyzPoint size)
+        public CubeMetadata(Vector3 size)
 		{
             SetSize = size;
 			CubeExists = new bool[size.X, size.Y, size.Z];
