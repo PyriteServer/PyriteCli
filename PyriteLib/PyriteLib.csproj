@@ -54,7 +54,7 @@
     <Compile Include="SpatialUtilities.cs" />
     <Compile Include="Texture.cs" />
     <Compile Include="Vector3D.cs" />
-    <Compile Include="XyPoint.cs" />
+    <Compile Include="Vector2.cs" />
     <Compile Include="Vector3.cs" />
     <Compile Include="Extent.cs" />
     <Compile Include="CubeManager.cs" />

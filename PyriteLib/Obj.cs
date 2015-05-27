@@ -86,17 +86,21 @@ namespace PyriteLib
 
             foreach (var face in faces)
             {
-                Vertex vertex = VertexList[face.VertexIndexList[0] - 1];
+                for (int i = 0; i < 3; i++)
+                {
+                    Vertex vertex = VertexList[face.VertexIndexList[i] - 1];
 
-                int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
-                int y = (int)Math.Floor((vertex.Y + yOffset) * yRatio);
-                int z = (int)Math.Floor((vertex.Z + zOffset) * zRatio);
+                    int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
+                    int y = (int)Math.Floor((vertex.Y + yOffset) * yRatio);
+                    int z = (int)Math.Floor((vertex.Z + zOffset) * zRatio);
 
-                if (x == xLength) x--;
-                if (y == yLength) y--;
-                if (z == zLength) z--;
+                    if (x == xLength) x--;
+                    if (y == yLength) y--;
+                    if (z == zLength) z--;
 
-                matrix[x, y, z].Add(face);               
+                    if (!matrix[x, y, z].Contains(face))
+                        matrix[x, y, z].Add(face);
+                }
             }
 		}
 
@@ -248,12 +252,67 @@ namespace PyriteLib
 
             foreach(var face in facesToRepair.Keys)
             {
-                // Type 1 - yields two triangles
+                // Type 1 - yields two triangles - 2 of the 3 vertices are in-bounds.
                 if (facesToRepair[face].Count == 1)
                 {
+                    Vertex croppedVertex = facesToRepair[face].First();
+                    Vertex[] newVertices = new Vertex[2];
+
+                    // Find the vertices we are keeping
+                    var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);                    
+                    Vertex[] homeVertices = allVerts.Except(new List<Vertex> { croppedVertex }).ToArray();
+
+                    // First triangle, use existing face
+                    var intersectionA = SpatialUtilities.CheckLineBox(
+                                            cubeExtent.MinCorner,
+                                            cubeExtent.MaxCorner,
+                                            new Vector3D(croppedVertex),
+                                            new Vector3D(homeVertices[0]));
+
+                    var intersectionB = SpatialUtilities.CheckLineBox(
+                                            cubeExtent.MinCorner,
+                                            cubeExtent.MaxCorner,
+                                            new Vector3D(croppedVertex),
+                                            new Vector3D(homeVertices[1]));
+
+                    if (intersectionA != null && intersectionB != null)
+                    {
+                        // Clone the face before we edit it, to use for the new face
+                        var newFace = face.Clone();
+
+                        // Update the UVs before the vertices so we can key off the original vertices
+                        // New UV for NewVertexA / IntersectionA, which is a new point between homeVertices[0] and croppedVertex
+                        var resultA = CalculateNewUV(face, croppedVertex, homeVertices[0], intersectionA);
+                        face.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
+
+                        // New UV for NewVertexB / IntersectionB, which is a new point between homeVertices[1] and croppedVertex
+                        var resultB = CalculateNewUV(newFace, croppedVertex, homeVertices[1], intersectionB);
+                        newFace.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
+
+                        // Now update the vertices
+                        // Add a new vertex and update the existing face
+                        int length = VertexList.Count();
+                        var NewVertexA = new Vertex { Index = length + 1, X = intersectionA.X, Y = intersectionA.Y, Z = intersectionA.Z };
+                        VertexList.Add(NewVertexA);
+                        face.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+
+                        // Add another new vertex for the net-new face
+                        length++;
+                        var NewVertexB = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
+                        VertexList.Add(NewVertexB);
+
+                        // Add the net-new face
+                        // TODO: Almost certainly leaving the face and vertex list incorrect for future cubes
+                        // Won't really know until I do a run and see what is broken...
+                        FaceList.Add(newFace);
+                        chunkFaceList.Add(newFace);
+                        newFace.UpdateVertexIndex(homeVertices[0].Index, length, false);
+                        newFace.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+                        
+                    }
 
                 }
-                // Type 2 - yields single triangle
+                // Type 2 - yields single triangle - 1 of the 3 vertices are in-bounds.
                 else
                 {
                     Vertex[] croppedVertices = facesToRepair[face].ToArray();
@@ -265,19 +324,65 @@ namespace PyriteLib
 
                     for (int i = 0; i < 2; i++)
                     {
+                        var croppedVertex = new Vector3D(croppedVertices[i]);
+
+                        // Figure out where this line intersects the cube
                         var intersection = SpatialUtilities.CheckLineBox(
                                                 cubeExtent.MinCorner,
                                                 cubeExtent.MaxCorner,                                                
                                                 new Vector3D(croppedVertices[i]),
                                                 new Vector3D(homeVertex));
 
-                        int length = VertexList.Count();
-                        VertexList.Add(new Vertex { Index = length + 1, X = intersection.X, Y = intersection.Y, Z = intersection.Z });
-                        face.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
+                        if (intersection != null)
+                        {
+                            var result = CalculateNewUV(face, croppedVertices[i], homeVertex, intersection);
+
+                            face.UpdateTextureVertexIndex(result.OldIndex, result.NewIndex, false);
+
+                            // Add the new vertex
+                            int length = VertexList.Count();
+                            VertexList.Add(new Vertex { Index = length + 1, X = intersection.X, Y = intersection.Y, Z = intersection.Z });
+                            face.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
+                        }
                     }
                 }
 
             }
+        }
+
+        class CalculateNewUVResult
+        {
+            public int OldIndex { get; set; }
+            public int NewIndex { get; set; }
+        }
+
+        /// <summary>
+        /// Calculates and inserts a new UV between two existing ones
+        /// </summary>
+        /// <returns>The index of the new UV</returns>
+        private CalculateNewUVResult CalculateNewUV(Face face, Vertex croppedVertex, Vertex homeVertex, Vector3D intersection)
+        {
+            // Figure out the UV transform
+            // First, figure out the distance of the old and new line segments in 3d space
+            double originalDistance = Math.Sqrt(Math.Pow(croppedVertex.X - homeVertex.X, 2) + Math.Pow(croppedVertex.Y - homeVertex.Y, 2) + Math.Pow(croppedVertex.Z - homeVertex.Z, 2));
+            double newDistance = Math.Sqrt(Math.Pow(intersection.X - homeVertex.X, 2) + Math.Pow(intersection.Y - homeVertex.Y, 2) + Math.Pow(intersection.Z - homeVertex.Z, 2));
+            double multiplier = newDistance / originalDistance;
+
+            // And the distances in 2d (UV) space
+            var croppedUV = TextureList[face.TextureVertexIndexList[Array.IndexOf(face.VertexIndexList, croppedVertex.Index)] - 1];
+            var homeUV = TextureList[face.TextureVertexIndexList[Array.IndexOf(face.VertexIndexList, homeVertex.Index)] - 1];
+            var originalUVDistance = Math.Sqrt(Math.Pow(croppedUV.X - homeUV.X, 2) + Math.Pow(croppedUV.Y - homeUV.Y, 2));
+            var newUVDistance = originalUVDistance * multiplier;
+
+            // New UV coordinate using parameterized equation of the 3d line
+            double u = homeUV.X + (croppedUV.X - homeUV.X) * multiplier;
+            double v = homeUV.Y + (croppedUV.Y - homeUV.Y) * multiplier;
+
+            // Add the new UV
+            int length = TextureList.Count();
+            TextureList.Add(new TextureVertex { Index = length + 1, X = u, Y = v, OriginalX = u, OriginalY = v, Transformed = true });
+
+            return new CalculateNewUVResult { OldIndex = croppedUV.Index, NewIndex = length + 1 };
         }
 
         private List<Vertex> FindOutOfBoundVertices(Face face, Extent extent)

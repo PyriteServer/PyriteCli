@@ -122,5 +122,20 @@ namespace PyriteLib.Types
 
             return b.ToString();
         }
+
+        public Face Clone()
+        {
+            var Face = new Face()
+            {
+                originalTextureVertexIndexList = (int[])this.originalTextureVertexIndexList.Clone(),
+                originalVertexIndexList = (int[])this.originalVertexIndexList.Clone(),
+                TextureVertexIndexList = (int[])this.TextureVertexIndexList.Clone(),
+                VertexIndexList = (int[])this.VertexIndexList.Clone()                
+            };
+
+            Face.TextureVertexIndexHash = new HashSet<int>(TextureVertexIndexList);
+
+            return Face;
+        }
 	}
 }

@@ -16,7 +16,7 @@ namespace PyriteLib
 
 		public Vector3 SetSize { get; set; }
 
-        public XyPoint TextureSetSize { get; set; }
+        public Vector2 TextureSetSize { get; set; }
 
         public int VertexCount { get; set; }
 

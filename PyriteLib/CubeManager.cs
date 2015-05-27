@@ -49,11 +49,11 @@ namespace PyriteLib
 			{
 				options.UVTransforms = GenerateTextures(Path.Combine(outputPath, TextureSubDirectory), options);
 				ObjInstance.TransformUVs(options);
-                metadata.TextureSetSize = new XyPoint { X = options.TextureSliceX, Y = options.TextureSliceY };
+                metadata.TextureSetSize = new Vector2 { X = options.TextureSliceX, Y = options.TextureSliceY };
 			}
             else
             {
-                metadata.TextureSetSize = new XyPoint { X = 1, Y = 1 };
+                metadata.TextureSetSize = new Vector2 { X = 1, Y = 1 };
             }
 
 			// Generate some tiles			
