@@ -86,8 +86,10 @@ namespace PyriteLib
 
             foreach (var face in faces)
             {
+                List<int> used = new List<int>();
+
                 for (int i = 0; i < 3; i++)
-                {
+                {                   
                     Vertex vertex = VertexList[face.VertexIndexList[i] - 1];
 
                     int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
@@ -98,8 +100,13 @@ namespace PyriteLib
                     if (y == yLength) y--;
                     if (z == zLength) z--;
 
-                    if (!matrix[x, y, z].Contains(face))
+                    int hash = x * 10000 + y * 100 + z;
+
+                    if (!used.Contains(hash))
+                    {
                         matrix[x, y, z].Add(face);
+                        used.Add(hash);
+                    }
                 }
             }
 		}
@@ -278,23 +285,28 @@ namespace PyriteLib
                     if (intersectionA != null && intersectionB != null)
                     {
                         // Clone the face before we edit it, to use for the new face
-                        var newFace = face.Clone();
+                        var newFaceA = face.Clone();
+                        var newFaceB = face.Clone();
 
                         // Update the UVs before the vertices so we can key off the original vertices
                         // New UV for NewVertexA / IntersectionA, which is a new point between homeVertices[0] and croppedVertex
                         var resultA = CalculateNewUV(face, croppedVertex, homeVertices[0], intersectionA);
-                        face.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
+                        newFaceA.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
 
                         // New UV for NewVertexB / IntersectionB, which is a new point between homeVertices[1] and croppedVertex
-                        var resultB = CalculateNewUV(newFace, croppedVertex, homeVertices[1], intersectionB);
-                        newFace.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
+                        var resultB = CalculateNewUV(newFaceB, croppedVertex, homeVertices[1], intersectionB);
+                        newFaceB.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
 
                         // Now update the vertices
                         // Add a new vertex and update the existing face
                         int length = VertexList.Count();
                         var NewVertexA = new Vertex { Index = length + 1, X = intersectionA.X, Y = intersectionA.Y, Z = intersectionA.Z };
                         VertexList.Add(NewVertexA);
-                        face.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+                        newFaceA.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+
+                        // Replace original face with newFaceA
+                        chunkFaceList.Add(newFaceA);
+                        chunkFaceList.Remove(face);
 
                         // Add another new vertex for the net-new face
                         length++;
@@ -304,16 +316,15 @@ namespace PyriteLib
                         // Add the net-new face
                         // TODO: Almost certainly leaving the face and vertex list incorrect for future cubes
                         // Won't really know until I do a run and see what is broken...
-                        FaceList.Add(newFace);
-                        chunkFaceList.Add(newFace);
-                        newFace.UpdateVertexIndex(homeVertices[0].Index, length, false);
-                        newFace.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+                        chunkFaceList.Add(newFaceB);
+                        newFaceB.UpdateVertexIndex(homeVertices[0].Index, length, false);
+                        newFaceB.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
                         
                     }
 
                 }
                 // Type 2 - yields single triangle - 1 of the 3 vertices are in-bounds.
-                else
+                else if (facesToRepair[face].Count == 2)
                 {
                     Vertex[] croppedVertices = facesToRepair[face].ToArray();
                     Vertex[] newVertices = new Vertex[2];
@@ -321,6 +332,10 @@ namespace PyriteLib
                     // Find the vertex we are keeping
                     var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);
                     Vertex homeVertex = allVerts.Except(croppedVertices).First();
+
+                    // Create new face
+                    bool doReplacement = false;
+                    var newFace = face.Clone();
 
                     for (int i = 0; i < 2; i++)
                     {
@@ -335,15 +350,25 @@ namespace PyriteLib
 
                         if (intersection != null)
                         {
+                            doReplacement = true;
+
                             var result = CalculateNewUV(face, croppedVertices[i], homeVertex, intersection);
 
-                            face.UpdateTextureVertexIndex(result.OldIndex, result.NewIndex, false);
+                            newFace.UpdateTextureVertexIndex(result.OldIndex, result.NewIndex, false);
 
                             // Add the new vertex
                             int length = VertexList.Count();
                             VertexList.Add(new Vertex { Index = length + 1, X = intersection.X, Y = intersection.Y, Z = intersection.Z });
-                            face.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
+
+                            // Update the new face vertex
+                            newFace.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
                         }
+                    }
+
+                    if (doReplacement)
+                    {
+                        chunkFaceList.Add(newFace);
+                        chunkFaceList.Remove(face);
                     }
                 }
 
@@ -577,7 +602,7 @@ namespace PyriteLib
                 ZMin = VertexList.Min(v => v.Z)
             };
 
-			double sideLength = Math.Max(Math.Max(Size.XSize, Size.YSize), Size.ZSize);
+            double sideLength = Math.Ceiling(Math.Max(Math.Max(Size.XSize, Size.YSize), Size.ZSize));
 
 			CubicalSize = new Extent
 			{

@@ -166,9 +166,9 @@ namespace PyriteCli
 
 		public Options()
 		{
-			XSize = 10;
-			YSize = 10;
-			ZSize = 10;
+			XSize = 2;
+			YSize = 2;
+			ZSize = 2;
 			ScaleTexture = 1;
 			TextureXSize = 4;
 			TextureYSize = 4;

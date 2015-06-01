@@ -299,9 +299,9 @@ namespace PyriteLib
 
             List<Face> result = new List<Face>();
 
-            for (int x = tileX * xRatio; x <= (tileX * xRatio) + xRatio; x++)
+            for (int x = tileX * xRatio; x < (tileX * xRatio) + xRatio; x++)
             {
-                for (int y = tileY * yRatio; y <= (tileY * yRatio) + yRatio; y++)
+                for (int y = tileY * yRatio; y < (tileY * yRatio) + yRatio; y++)
                 {
                     for (int z = 0; z < obj.FaceMatrix.GetLength(2); z++)
                     {
