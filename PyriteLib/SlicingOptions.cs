@@ -15,11 +15,19 @@ namespace PyriteLib
 		public bool ForceCubicalCubes { get; set; }
 		public bool Debug { get; set; }
 		public string Texture { get; set; }
-		public int TextureSliceX { get; set; }
+        public string Obj { get; set; }
+        public int TextureSliceX { get; set; }
 		public int TextureSliceY { get; set; }
 		public float TextureScale { get; set; }
 		public Texture TextureInstance { get; set; }
 		public Dictionary<Extent, RectangleTransform[]> UVTransforms { get; set; }
-        
+        public Vector3 CubeGrid { get; set; }
+
+        // Support for cloud processing
+        public string CloudObjPath { get; set; }
+        public string CloudTexturePath { get; set; }
+        public string CloudResultPath { get; set; }
+        public string CloudResultContainer { get; set; }
+
     }
 }

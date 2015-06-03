@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using PyriteLib.Types;
 
 namespace PyriteLib
@@ -13,15 +14,23 @@ namespace PyriteLib
 	public class Texture
 	{
 		private Obj obj;
+        private Image source;
+        private Object sourceLock = new Object();
 
-		public Texture(Obj obj)
+        public Texture(Obj obj)
 		{
 			this.obj = obj;
 		}
 
-		// Generates a copy of the provided texture and
-		// draws the outline of all UVW's on the image
-		public void MarkupTextureFaces(string texturePath)
+        public Texture(Obj obj, string texturePath)
+        {
+            this.obj = obj;
+            source = Image.FromFile(texturePath);
+        }
+
+        // Generates a copy of the provided texture and
+        // draws the outline of all UVW's on the image
+        public void MarkupTextureFaces(string texturePath)
 		{
 			string outputPath = texturePath + "_debug.jpg";
 
@@ -72,7 +81,7 @@ namespace PyriteLib
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
-		public RectangleTransform[] GenerateTextureTile(string texturePath, string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale, bool cubical)
+		public RectangleTransform[] GenerateTextureTile(string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale, bool cubical)
 		{                        
 			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY, cubical);
 
@@ -81,42 +90,47 @@ namespace PyriteLib
 				Trace.TraceInformation("No faces found in tile {0}, {1}.  No texture generated.", tileX, tileY);
 				return new RectangleTransform[0];
 			}
-			
-			Size originalSize;
+
+            Size originalSize;
+            lock (sourceLock)
+            {
+                originalSize = source.Size;
+            }
 			Size newSize = new Size();
 
             Trace.TraceInformation("Generating sparse texture for tile {0}, {1}", tileX, tileY);
 
-			using (Image source = Image.FromFile(texturePath))
-			{
-
-				// Identify blob rectangles
-				var groupedFaces = FindConnectedFaces(chunkFaceList);
-				var uvRects = FindUVRectangles(groupedFaces);
-				Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, source.Size, 3);
+			// Identify blob rectangles
+			var groupedFaces = FindConnectedFaces(chunkFaceList);
+			var uvRects = FindUVRectangles(groupedFaces);
+			Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, originalSize, 3);
 
 
-				// Bin pack rects, growing to a maximum 16384.
-				Rectangle[] destinationRects = PackTextures(sourceRects, 512, 512, 16384);
+            // Bin pack rects, growing to a maximum 16384.
+            // Estimate ideal bin size
+            var totalArea = sourceRects.Sum(r => r.Height * r.Width);
+            var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
+			Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize, 16384);
 
-				// Identify the cropped size of our new texture
-				originalSize = source.Size;
-				newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
-				newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
+			// Identify the cropped size of our new texture			
+			newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
+			newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
 
-				// Round new texture size up to nearest power of 2
-				newSize.Width = NextPowerOfTwo(newSize.Width);
-				newSize.Height = NextPowerOfTwo(newSize.Height);
+			// Round new texture size up to nearest power of 2
+			newSize.Width = NextPowerOfTwo(newSize.Width);
+			newSize.Height = NextPowerOfTwo(newSize.Height);
 
-				// Build the new bin packed and cropped texture
-				WriteNewTexture(outputPath, scale, newSize, source, sourceRects, destinationRects);
-
-				// Generate the UV transform array
-				return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
-			}
+            // Build the new bin packed and cropped texture
+            lock (sourceLock)
+            {
+                WriteNewTexture(outputPath, scale, newSize, source, sourceRects, destinationRects);
+            }
+			// Generate the UV transform array
+			return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
+			
 		}
-
-		private static void WriteNewTexture(string outputPath, float scale, Size newSize, Image source, Rectangle[] sourceRects, Rectangle[] destinationRects)
+        
+        private static void WriteNewTexture(string outputPath, float scale, Size newSize, Image source, Rectangle[] sourceRects, Rectangle[] destinationRects)
 		{
 			using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
 			{
@@ -377,7 +391,7 @@ namespace PyriteLib
             return filename;         
         }
 
-		private static int NextPowerOfTwo(int x)
+		public static int NextPowerOfTwo(int x)
 		{
 			x--;
 			x |= (x >> 1);

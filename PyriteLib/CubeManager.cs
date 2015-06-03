@@ -17,19 +17,14 @@ namespace PyriteLib
 		public Obj ObjInstance { get; set; }
 		private Vector3 size;
 
-		public CubeManager(string inputFile, int xSize, int ySize, int zSize, SlicingOptions options)
+		public CubeManager(SlicingOptions options)
 		{
-			size = new Vector3
-			{
-				X = xSize,
-				Y = ySize,
-				Z = zSize
-			};
+            size = options.CubeGrid;
 			
 			// Parse and load the object
-			Trace.TraceInformation("Loading {0}", inputFile);
+			Trace.TraceInformation("Loading {0}", options.Obj);
 			ObjInstance = new Obj();
-			ObjInstance.LoadObj(inputFile, ShowLinesLoaded, new Vector3 { X = xSize, Y = ySize, Z = zSize }, options);
+			ObjInstance.LoadObj(options.Obj, ShowLinesLoaded, size, options);
 
 			// Write out a bit of info about the object
 			Trace.TraceInformation("Loaded {0} vertices and {1} faces", ObjInstance.VertexList.Count(), ObjInstance.FaceList.Count());
@@ -45,7 +40,7 @@ namespace PyriteLib
 				VertexCount = ObjInstance.VertexList.Count };
 
 			// If appropriate, generate textures and save transforms first
-			if (!string.IsNullOrEmpty(options.Texture))
+			if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
 			{
 				options.UVTransforms = GenerateTextures(Path.Combine(outputPath, TextureSubDirectory), options);
 				ObjInstance.TransformUVs(options);
@@ -82,7 +77,7 @@ namespace PyriteLib
 			Dictionary<Extent, RectangleTransform[]> transforms = new Dictionary<Extent, RectangleTransform[]>();
 
 			// Create texture
-			Texture t = new Texture(this.ObjInstance);
+			Texture t = new Texture(this.ObjInstance, options.Texture);
 
 			// Hold a ref to the texture instance for debugging
 			options.TextureInstance = t;
@@ -109,7 +104,7 @@ namespace PyriteLib
 				
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
 
-				var transform = t.GenerateTextureTile(options.Texture, fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale, options.ForceCubicalCubes);
+				var transform = t.GenerateTextureTile(fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale, options.ForceCubicalCubes);
 				transforms.Add(extent, transform);
             });
 
@@ -119,8 +114,8 @@ namespace PyriteLib
 		// Action to show incremental file loading status
 		public static void ShowLinesLoaded(int lines)
 		{			
-			Console.SetCursorPosition(0, Console.CursorTop);
-			Console.Write("Loaded {0} lines             ", lines);			
+			//Console.SetCursorPosition(0, Console.CursorTop);
+			//Console.Write("Loaded {0} lines             ", lines);			
 		}
 	}
 }

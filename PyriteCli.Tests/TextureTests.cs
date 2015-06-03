@@ -7,6 +7,22 @@ using System.Linq;
 using System.Drawing;
 using System.Diagnostics;
 
+namespace PyriteLib.Tests
+{
+    [TestClass()]
+    public class TextureTests
+    {
+        [TestMethod()]
+        public void NextPowerOfTwoTest()
+        {
+            Assert.AreEqual(1024, Texture.NextPowerOfTwo(1023));
+            Assert.AreEqual(1024, Texture.NextPowerOfTwo(1020));
+            Assert.AreEqual(2048, Texture.NextPowerOfTwo(2048));
+            Assert.AreEqual(2048, Texture.NextPowerOfTwo(1025));
+        }
+    }
+}
+
 namespace PyriteCli.Tests
 {
 	[TestClass]
@@ -98,12 +114,14 @@ namespace PyriteCli.Tests
 				TextureScale = 1,
 				TextureSliceX = 2,
 				TextureSliceY = 2,
-				ForceCubicalCubes = false
-			};
+                ForceCubicalCubes = false,
+                Obj = "model.obj",
+                CubeGrid = new Vector3(2, 2, 2)
+            };
 
-			CubeManager manager = new CubeManager("model.obj", 2, 2, 2, options);
+            CubeManager manager = new CubeManager(options);
 
-			return new Texture(manager.ObjInstance);
+            return new Texture(manager.ObjInstance);
 		}
 	}
 }

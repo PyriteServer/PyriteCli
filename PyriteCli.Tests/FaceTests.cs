@@ -32,17 +32,19 @@ namespace PyriteCli.Tests
 
 		private CubeManager GetLoadedManager()
 		{
-			var options = new SlicingOptions
-			{				
-				GenerateObj = true,
-				Texture = "texture.jpg",
-				TextureScale = 1,
-				TextureSliceX = 2,
-				TextureSliceY = 2,
-				ForceCubicalCubes = false
+            var options = new SlicingOptions
+            {
+                GenerateObj = true,
+                Texture = "texture.jpg",
+                TextureScale = 1,
+                TextureSliceX = 2,
+                TextureSliceY = 2,
+                ForceCubicalCubes = false,
+                Obj = "model.obj",
+                CubeGrid = new Vector3(2, 2, 2)
 			};
 
-			CubeManager manager = new CubeManager("model.obj", 2, 2, 2, options);
+			CubeManager manager = new CubeManager(options);
 
 			return manager;
 		}

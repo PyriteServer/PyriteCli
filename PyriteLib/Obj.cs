@@ -12,8 +12,6 @@ namespace PyriteLib
 {
     public class Obj
     {
-		const int NUMCORES = 7;
-
         public List<Vertex> VertexList;
         public List<Face> FaceList;
 		public List<Face>[,,] FaceMatrix;
@@ -473,7 +471,7 @@ namespace PyriteLib
 				_verticesRequireReset = true;		
                 int newVertexIndex = 0;
 
-                Parallel.ForEach(requiredVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
+                Parallel.ForEach(requiredVertices, i =>
                 {
                     Vertex moving = VertexList[i - 1];
                     int newIndex = WriteVertexWithNewIndex(moving, ref newVertexIndex, writer);
@@ -486,7 +484,7 @@ namespace PyriteLib
                 // Write each texture vertex and update faces
                 int newTextureVertexIndex = 0;
 
-                Parallel.ForEach(requiredTextureVertices, new ParallelOptions { MaxDegreeOfParallelism = NUMCORES }, i =>
+                Parallel.ForEach(requiredTextureVertices, i =>
                 {
                     TextureVertex moving = TextureList[i - 1];
                     int newIndex = WriteVertexWithNewIndex(moving, ref newTextureVertexIndex, writer);
@@ -505,7 +503,7 @@ namespace PyriteLib
             using (var outStream = File.OpenWrite(path))
             using (var writer = new BinaryWriter(outStream))
             {
-				writer.Write((ushort)chunkFaceList.Count); 
+				writer.Write((ushort)chunkFaceList.Count);
 
 				for (int fi = 0; fi < chunkFaceList.Count; fi++)
 				{
@@ -525,7 +523,7 @@ namespace PyriteLib
 							{
 								var face = doubleMatch.First();
 
-								// The total number of vertices prior to this face
+								// The total number of vertices prior to matching face
 								int index = (chunkFaceList.IndexOf(face)) * 3;
 
 								// Now add the delta to index into this triangle correctly

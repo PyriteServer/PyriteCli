@@ -49,19 +49,6 @@ namespace PyriteCli
 							outputPath = Path.Combine(opt.OutputPath, Path.GetFileNameWithoutExtension(path));
 						}
 
-						var options = new SlicingOptions
-						{
-							OverrideMtl = opt.MtlOverride,
-							GenerateEbo = opt.Ebo,
-							Debug = opt.Debug,
-							GenerateObj = true,
-							Texture = opt.Texture,
-							TextureScale = opt.ScaleTexture,
-							TextureSliceX = opt.TextureXSize,
-							TextureSliceY = opt.TextureYSize,
-							ForceCubicalCubes = opt.ForceCubical
-						};
-
 						if (opt.ForceCubical)
 						{
 							int longestGridSide = Math.Max(Math.Max(opt.XSize, opt.YSize), opt.ZSize);
@@ -70,7 +57,22 @@ namespace PyriteCli
 							Console.WriteLine("Due to -ForceCubical grid size is now {0},{0},{0}", longestGridSide);
 						}
 
-						CubeManager manager = new CubeManager(path, opt.XSize, opt.YSize, opt.ZSize, options);
+                        var options = new SlicingOptions
+                        {
+                            OverrideMtl = opt.MtlOverride,
+                            GenerateEbo = opt.Ebo,
+                            Debug = opt.Debug,
+                            GenerateObj = true,
+                            Texture = opt.Texture,
+                            Obj = path,
+                            TextureScale = opt.ScaleTexture,
+                            TextureSliceX = opt.TextureXSize,
+                            TextureSliceY = opt.TextureYSize,
+                            ForceCubicalCubes = opt.ForceCubical,
+                            CubeGrid = new Vector3 { X = opt.XSize, Y = opt.YSize, Z = opt.ZSize }
+                        };
+
+                        CubeManager manager = new CubeManager(options);
 
 						if (opt.MarkupUV)
 						{
