@@ -1,0 +1,12 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="PyriteCloudCLI.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="StorageConnectionString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DefaultEndpointsProtocol=https;AccountName=cubeserver;AccountKey=Ppc9pT/BxOfx36GbKF9bJRhlOey0HclRw2DuWHFmN+0UtC6cwW00/5V38GLs5gfllPUdNkEhb0g6+Pp4aigbBg==</Value>
+    </Setting>
+    <Setting Name="Queue" Type="System.String" Scope="User">
+      <Value Profile="(Default)">processqueue</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

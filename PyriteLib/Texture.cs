@@ -13,18 +13,19 @@ namespace PyriteLib
 {
 	public class Texture
 	{
-		private Obj obj;
+        public Obj TargetObj { get; set; }
+
         private Image source;
         private Object sourceLock = new Object();
 
         public Texture(Obj obj)
 		{
-			this.obj = obj;
+            TargetObj = obj;
 		}
 
         public Texture(Obj obj, string texturePath)
         {
-            this.obj = obj;
+            TargetObj = obj;
             source = Image.FromFile(texturePath);
         }
 
@@ -34,7 +35,7 @@ namespace PyriteLib
 		{
 			string outputPath = texturePath + "_debug.jpg";
 
-			var triangles = GetUVTriangles(obj.FaceList);
+			var triangles = GetUVTriangles(TargetObj.FaceList);
 
 			using (Image output = Image.FromFile(texturePath))
 			{
@@ -81,9 +82,9 @@ namespace PyriteLib
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
-		public RectangleTransform[] GenerateTextureTile(string outputPath, int gridHeight, int gridWidth, int tileX, int tileY, float scale, bool cubical)
+		public RectangleTransform[] GenerateTextureTile(string outputPath, int tileX, int tileY, SlicingOptions options)
 		{                        
-			List<Face> chunkFaceList = GetFaceList(gridHeight, gridWidth, tileX, tileY, cubical);
+			List<Face> chunkFaceList = GetFaceListFromTextureTile(options.TextureSliceY, options.TextureSliceX, tileX, tileY, TargetObj).ToList();
 
 			if (!chunkFaceList.Any())
 			{
@@ -123,7 +124,7 @@ namespace PyriteLib
             // Build the new bin packed and cropped texture
             lock (sourceLock)
             {
-                WriteNewTexture(outputPath, scale, newSize, source, sourceRects, destinationRects);
+                WriteNewTexture(outputPath, options.TextureScale, newSize, source, sourceRects, destinationRects);
             }
 			// Generate the UV transform array
 			return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
@@ -301,33 +302,25 @@ namespace PyriteLib
 		private List<Tuple<TextureVertex, TextureVertex, TextureVertex>> GetUVTriangles(List<Face> chunkFaceList)
 		{
 			return chunkFaceList.Select(f => new Tuple<TextureVertex, TextureVertex, TextureVertex>(
-							obj.TextureList[f.TextureVertexIndexList[0] - 1],
-							obj.TextureList[f.TextureVertexIndexList[1] - 1],
-							obj.TextureList[f.TextureVertexIndexList[2] - 1])).ToList();
+                            TargetObj.TextureList[f.TextureVertexIndexList[0] - 1],
+                            TargetObj.TextureList[f.TextureVertexIndexList[1] - 1],
+                            TargetObj.TextureList[f.TextureVertexIndexList[2] - 1])).ToList();
 		}
 
-		private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
+		public static IEnumerable<Face> GetFaceListFromTextureTile(int gridHeight, int gridWidth, int tileX, int tileY, Obj obj)
 		{
             int xRatio = obj.FaceMatrix.GetLength(0) / gridWidth;
             int yRatio = obj.FaceMatrix.GetLength(1) / gridHeight;
 
-            List<Face> result = new List<Face>();
+            int maxZ = obj.FaceMatrix.GetLength(2);
+            return from x in Enumerable.Range(tileX * xRatio, xRatio)
+                   from y in Enumerable.Range(tileY * yRatio, yRatio)
+                   from z in Enumerable.Range(0, maxZ)
+                   from face in obj.FaceMatrix[x, y, z]
+                   select face;
+        }
 
-            for (int x = tileX * xRatio; x < (tileX * xRatio) + xRatio; x++)
-            {
-                for (int y = tileY * yRatio; y < (tileY * yRatio) + yRatio; y++)
-                {
-                    for (int z = 0; z < obj.FaceMatrix.GetLength(2); z++)
-                    {
-                        result.AddRange(obj.FaceMatrix[x, y, z]);
-                    }
-                }
-            }
-
-            return result;
-		}
-
-		private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
+        private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
 		{
             Trace.TraceInformation("Bin packing {0} rectangles", source.Length);
             Stopwatch stopwatch = Stopwatch.StartNew();

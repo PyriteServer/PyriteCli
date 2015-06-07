@@ -73,7 +73,7 @@ namespace PyriteCli
 
                 options.CloudObjPath = objPath;
                 options.CloudTexturePath = texPath;
-                options.CloudResultContainer = "mountain";
+                options.CloudResultContainer = "nashvillenew";
                 options.CloudResultPath = opt.OutputPath;
 
                 string message = JsonConvert.SerializeObject(options);

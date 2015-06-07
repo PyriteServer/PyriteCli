@@ -7,8 +7,8 @@
       <Setting name="Queue" />
     </ConfigurationSettings>
     <LocalResources>
-      <LocalStorage name="input" cleanOnRoleRecycle="true" sizeInMB="5000" />
-      <LocalStorage name="output" cleanOnRoleRecycle="true" sizeInMB="10000" />
+      <LocalStorage name="input" cleanOnRoleRecycle="true" sizeInMB="10000" />
+      <LocalStorage name="output" cleanOnRoleRecycle="true" sizeInMB="15000" />
     </LocalResources>
   </WorkerRole>
 </ServiceDefinition>

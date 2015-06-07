@@ -63,13 +63,14 @@ namespace PyriteCli.Tests
 			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
 			PrivateType textureType = new PrivateType(typeof(Texture));
 
-			// private RectangleF[] FindUVRectangles(List<List<Face>> groupedFaces)
-			PrivateObject textureObject = new PrivateObject(GetTestTexture());
+            // private RectangleF[] FindUVRectangles(List<List<Face>> groupedFaces)
+            var texture = GetTestTexture();
+            PrivateObject textureObject = new PrivateObject(texture);
 
-			// private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
-			List<Face> faces = (List<Face>)textureObject.Invoke("GetFaceList", new Object[] { 2, 2, 0, 1, false });
+            // private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
+            List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
 
-			Stopwatch watch = Stopwatch.StartNew();
+            Stopwatch watch = Stopwatch.StartNew();
 			for (int i = 0; i < 10; i++)
 			{
 				var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces });
@@ -83,18 +84,19 @@ namespace PyriteCli.Tests
 			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
 			PrivateType textureType = new PrivateType(typeof(Texture));
 
-			// private RectangleF[] FindUVRectangles(List<List<Face>> groupedFaces)
-			PrivateObject textureObject = new PrivateObject(GetTestTexture());
+            // private RectangleF[] FindUVRectangles(List<List<Face>> groupedFaces)
+            var texture = GetTestTexture();
+			PrivateObject textureObject = new PrivateObject(texture);
 
-			// private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
-			List<Face> faces = (List<Face>)textureObject.Invoke("GetFaceList", new Object[] { 2, 2, 0, 1, false });
+            // private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
+            List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
 
 			var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces });
 
 			RectangleF[] rectangles = (RectangleF[])textureObject.Invoke("FindUVRectangles", new Object[] { result });
 
 			// We got our rects
-			Assert.AreEqual(113, rectangles.Count());
+			Assert.AreEqual(114, rectangles.Count());
 
 			// None of them are contained inside other ones
 			for (int i = 0; i < rectangles.Length; i++)

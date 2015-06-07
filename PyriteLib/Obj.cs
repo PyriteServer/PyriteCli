@@ -12,6 +12,7 @@ namespace PyriteLib
 {
     public class Obj
     {
+
         public List<Vertex> VertexList;
         public List<Face> FaceList;
 		public List<Face>[,,] FaceMatrix;
@@ -119,14 +120,20 @@ namespace PyriteLib
 		{
 			Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
 
-			foreach (var extent in options.UVTransforms.Keys)
+			foreach (var textureTile in options.UVTransforms.Keys)
 			{
-				var faces = FaceList.AsParallel().Where(v => v.InExtent(extent, VertexList)).ToList();
-                var uvIndices = faces.SelectMany(f => f.TextureVertexIndexList).Distinct();
+                var faces = Texture.GetFaceListFromTextureTile(
+                    options.TextureSliceY, 
+                    options.TextureSliceX, 
+                    textureTile.X, 
+                    textureTile.Y, 
+                    this);
+
+                var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct();
 				var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
                 foreach (var uv in uvs)
 				{
-					var transforms = options.UVTransforms[extent].Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
+					var transforms = options.UVTransforms[textureTile].Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
 
 					if (transforms.Any())
 					{
@@ -139,7 +146,7 @@ namespace PyriteLib
 							TextureList[newIndex - 1].Transform(transform);
 
 							// Update all faces using the old UV in this extent
-							var FacesToUpdate = faces.Where(f => f.TextureVertexIndexList.Contains(uv.Index));
+							var FacesToUpdate = faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index));
 							foreach (var face in FacesToUpdate)
 							{
 								face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
@@ -154,7 +161,7 @@ namespace PyriteLib
 					}
 					else
 					{
-						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[extent].Count());
+						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[textureTile].Count());
 					}
 				}
 
@@ -162,7 +169,7 @@ namespace PyriteLib
 				if (options.Debug)
 				{
 					var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
-					var relevantTransforms = options.UVTransforms[extent];
+					var relevantTransforms = options.UVTransforms[textureTile];
 					if (relevantTransforms.Any() && notTransformedUVs.Any())
 						options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
 				}
@@ -397,7 +404,7 @@ namespace PyriteLib
             var originalUVDistance = Math.Sqrt(Math.Pow(croppedUV.X - homeUV.X, 2) + Math.Pow(croppedUV.Y - homeUV.Y, 2));
             var newUVDistance = originalUVDistance * multiplier;
 
-            // New UV coordinate using parameterized equation of the 3d line
+            // New UV coordinate using parameterized equation of the 2d line
             double u = homeUV.X + (croppedUV.X - homeUV.X) * multiplier;
             double v = homeUV.Y + (croppedUV.Y - homeUV.Y) * multiplier;
 

@@ -75,13 +75,16 @@ namespace PyriteCloudRole
                 slicingOptions.Texture = Path.Combine(inputPath, slicingOptions.Texture);
 
                 // Prep
+                Trace.TraceInformation("Syncing data");
                 VerifySourceData(slicingOptions);
 
                 // Run
+                Trace.TraceInformation("Starting Processing");
                 CubeManager manager = new CubeManager(slicingOptions);
                 manager.GenerateCubes(outputPath, slicingOptions);
 
                 // Cleanup
+                Trace.TraceInformation("Writing Results");
                 UploadResultData(slicingOptions);
             }
             catch (Exception ex)

@@ -44,11 +44,11 @@ namespace PyriteLib
 			{
 				options.UVTransforms = GenerateTextures(Path.Combine(outputPath, TextureSubDirectory), options);
 				ObjInstance.TransformUVs(options);
-                metadata.TextureSetSize = new Vector2 { X = options.TextureSliceX, Y = options.TextureSliceY };
+                metadata.TextureSetSize = new Vector2(options.TextureSliceX, options.TextureSliceY);
 			}
             else
             {
-                metadata.TextureSetSize = new Vector2 { X = 1, Y = 1 };
+                metadata.TextureSetSize = new Vector2(1, 1);
             }
 
 			// Generate some tiles			
@@ -68,13 +68,13 @@ namespace PyriteLib
 			File.WriteAllText(metadataPath, metadataString);
         }
 
-		public Dictionary<Extent, RectangleTransform[]> GenerateTextures(string outputPath, SlicingOptions options)
+		public Dictionary<Vector2, RectangleTransform[]> GenerateTextures(string outputPath, SlicingOptions options)
 		{
 			if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
 
 			Trace.TraceInformation("Generating textures.");
 
-			Dictionary<Extent, RectangleTransform[]> transforms = new Dictionary<Extent, RectangleTransform[]>();
+			Dictionary<Vector2, RectangleTransform[]> transforms = new Dictionary<Vector2, RectangleTransform[]>();
 
 			// Create texture
 			Texture t = new Texture(this.ObjInstance, options.Texture);
@@ -83,29 +83,11 @@ namespace PyriteLib
 			options.TextureInstance = t;
 
 			SpatialUtilities.EnumerateSpaceParallel(options.TextureSliceX, options.TextureSliceY, (x, y) =>
-			{
-				// Get extent
-				double tileHeight = (options.ForceCubicalCubes ? this.ObjInstance.CubicalSize.YSize : this.ObjInstance.Size.YSize) / options.TextureSliceY;
-				double tileWidth = (options.ForceCubicalCubes ? this.ObjInstance.CubicalSize.XSize : this.ObjInstance.Size.XSize) / options.TextureSliceX;
-
-				double yOffset = tileHeight * y;
-				double xOffset = tileWidth * x;
-
-				Extent extent = new Extent
-				{
-					XMin = this.ObjInstance.Size.XMin + xOffset,
-					YMin = this.ObjInstance.Size.YMin + yOffset,
-					ZMin = this.ObjInstance.Size.ZMin,
-					XMax = this.ObjInstance.Size.XMin + xOffset + tileWidth,
-					YMax = this.ObjInstance.Size.YMin + yOffset + tileHeight,
-					ZMax = this.ObjInstance.Size.ZMax
-				};
-
-				
+			{	
 				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
 
-				var transform = t.GenerateTextureTile(fileOutPath, options.TextureSliceY, options.TextureSliceX, x, y, options.TextureScale, options.ForceCubicalCubes);
-				transforms.Add(extent, transform);
+				var transform = t.GenerateTextureTile(fileOutPath, x, y, options);
+				transforms.Add(new Vector2(x, y), transform);
             });
 
 			return transforms;
