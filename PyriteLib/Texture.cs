@@ -320,6 +320,14 @@ namespace PyriteLib
                    select face;
         }
 
+        public static Vector2 GetTextureCoordFromCube(int gridHeight, int gridWidth, int cubeX, int cubeY, Obj obj)
+        {
+            int xRatio = obj.FaceMatrix.GetLength(0) / gridWidth;
+            int yRatio = obj.FaceMatrix.GetLength(1) / gridHeight;
+
+            return new Vector2((int)Math.Floor(cubeX / (double)xRatio), (int)Math.Floor(cubeY / (double)yRatio));
+        }
+
         private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
 		{
             Trace.TraceInformation("Bin packing {0} rectangles", source.Length);

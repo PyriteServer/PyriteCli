@@ -133,7 +133,7 @@ namespace PyriteLib.Types
                 VertexIndexList = (int[])this.VertexIndexList.Clone()                
             };
 
-            Face.TextureVertexIndexHash = new HashSet<int>(TextureVertexIndexList);
+            Face.TextureVertexIndexHash = new HashSet<int>(Face.TextureVertexIndexList);
 
             return Face;
         }
