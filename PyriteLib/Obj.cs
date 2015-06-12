@@ -194,6 +194,7 @@ namespace PyriteLib
         {
 			string objPath = path + ".obj";
 			string eboPath = path + ".ebo";
+		    string openCtmPath = path + ".ctm";
 
 			// Delete files or handle resume if the required ones already exist
 			CleanOldFiles(options, objPath, eboPath);
@@ -220,13 +221,19 @@ namespace PyriteLib
 				WriteEboFormattedFile(eboPath, options.OverrideMtl, chunkFaceList);
 			}
 
+            var tile = Texture.GetTextureCoordFromCube(options.TextureSliceY, options.TextureSliceX, cubeX, cubeY, this);
+
 			if (options.GenerateObj)
 			{
-                var tile = Texture.GetTextureCoordFromCube(options.TextureSliceY, options.TextureSliceX, cubeX, cubeY, this);
                 string comment = string.Format("Texture Tile {0},{1}", tile.X, tile.Y);
 				WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList, comment);
+                chunkFaceList.AsParallel().ForAll(f => f.RevertVertices());
 			}
 
+		    if (options.GenerateOpenCtm)
+		    {
+                WriteOpenCtmFormattedFile(openCtmPath, chunkFaceList, tile);
+		    }
             
 			return chunkFaceList.Count;
 		}
@@ -585,6 +592,100 @@ namespace PyriteLib
 				}
 				writer.Write((byte)128);
 			}
+        }
+
+        /// <summary>
+        /// Writes out the OpenCTM format for the chunk
+        /// 
+        /// According to http://openctm.sourceforge.net/media/FormatSpecification.pdf
+        /// </summary>
+        /// <param name="path">path of file to create</param>
+        /// <param name="chunkFaceList">list of faces associated with this chunk</param>
+        /// <param name="tile">texture tile information (used to associated with specific texture file)</param>
+        private void WriteOpenCtmFormattedFile(string path, List<Face> chunkFaceList, Vector2 tile)
+        {
+            // Build a list of vertices indexes needed for these faces
+            List<Tuple<int,int>> uniqueVertexUVPairs = null;
+
+            var tv = Task.Run(() => { uniqueVertexUVPairs = chunkFaceList.AsParallel().SelectMany(f => f.VertexIndexList.Zip(f.TextureVertexIndexList, (v,uv) => new Tuple<int,int>(v, uv))).Distinct().ToList(); });
+
+            Task.WaitAll(new Task[] { tv });		
+
+            
+            using (var outStream = File.OpenWrite(path))
+            using (var writer = new BinaryWriter(outStream))
+            {
+                // Header
+                writer.Write(Encoding.UTF8.GetBytes("OCTM"));
+                writer.Write(5); // Version
+                writer.Write(0x00574152); // Compression (RAW)
+                writer.Write(uniqueVertexUVPairs.Count);  // Vertex count
+                writer.Write(chunkFaceList.Count); // Triangle count
+                writer.Write(1); // UV count
+                writer.Write(0); // attribute map count
+                writer.Write(0); // flags
+                WriteOpenCTMString(writer, "Created by PyriteLib"); // comment
+
+                //Body
+
+                Dictionary<Tuple<int,int>,int> seenVertexUVPairs = new Dictionary<Tuple<int,int>, int>();
+                List<int> vertices = new List<int>(uniqueVertexUVPairs.Count);
+                List<int> uvs = new List<int>(uniqueVertexUVPairs.Count);
+                int nextIndex = 0;
+                // Indices
+                writer.Write(0x58444e49); // "INDX"                                                                                                                                                           
+                Parallel.ForEach(chunkFaceList, f =>
+                {
+                    lock (writer)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            int vertexIndex = f.VertexIndexList[i];
+                            int uvIndex = f.TextureVertexIndexList[i];
+                            Tuple<int, int> key = new Tuple<int, int>(vertexIndex, uvIndex);
+                            if (!seenVertexUVPairs.ContainsKey(key))
+                            {
+                                // This is a new vertex uv pair
+                                seenVertexUVPairs[key] = nextIndex++;
+                                vertices.Add(vertexIndex);
+                                uvs.Add(uvIndex);
+                            }
+
+                            writer.Write(seenVertexUVPairs[key]);
+                        }
+                    }
+                });
+
+                //Vertices
+                writer.Write(0x54524556);
+                vertices.ForEach(vertexIndex =>
+                {
+                    Vertex vertex = VertexList[vertexIndex - 1];
+                    writer.Write((float) vertex.X);
+                    writer.Write((float) vertex.Y);
+                    writer.Write((float) vertex.Z);
+                });
+
+                //Normals
+                // Not supported -- Skipped
+
+                // UV Maps
+                writer.Write(0x43584554);
+                WriteOpenCTMString(writer, "Diffuse color");
+                WriteOpenCTMString(writer, string.Format("{0}_{1}.jpg", tile.X, tile.Y));
+                uvs.ForEach(uvIndex =>
+                {
+                    TextureVertex vertex = TextureList[uvIndex - 1];
+                    writer.Write((float)vertex.X);
+                    writer.Write((float)vertex.Y);
+                });
+            }
+        }
+
+        private static void WriteOpenCTMString(BinaryWriter writer, string stringToWrite)
+        {
+            writer.Write(stringToWrite.Length);
+            writer.Write(Encoding.UTF8.GetBytes(stringToWrite));
         }
 
 		/// <summary>

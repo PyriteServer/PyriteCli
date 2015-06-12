@@ -11,6 +11,7 @@ namespace PyriteLib
 		public string OverrideMtl { get; set; }
 		public bool GenerateEbo { get; set; }
 		public bool GenerateObj { get; set; }
+        public bool GenerateOpenCtm { get; set; }
 		public bool AttemptResume { get; set; }
 		public bool ForceCubicalCubes { get; set; }
 		public bool Debug { get; set; }

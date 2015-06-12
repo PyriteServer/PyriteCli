@@ -61,6 +61,7 @@ namespace PyriteCli
                         {
                             OverrideMtl = opt.MtlOverride,
                             GenerateEbo = opt.Ebo,
+                            GenerateOpenCtm =  opt.OpenCtm,
                             Debug = opt.Debug,
                             GenerateObj = true,
                             Texture = opt.Texture,
@@ -143,6 +144,10 @@ namespace PyriteCli
 		[NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
 			Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
 		public bool Ebo { get; set; }
+
+        [NamedArgument('p', "openctm", Action = ParseAction.StoreTrue,
+            Description = "Generate OpenCtm files designed for use with CubeServer in addition to OBJ files")]
+        public bool OpenCtm { get; set; }
 
 		[NamedArgument('a', "markupUV", Action = ParseAction.StoreTrue,
 			Description = "Draws UVW's on a texture")]
