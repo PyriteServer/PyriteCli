@@ -56,6 +56,7 @@ namespace PyriteCli
                 {
                     OverrideMtl = opt.MtlOverride,
                     GenerateEbo = opt.Ebo,
+                    GenerateOpenCtm = opt.OpenCtm,
                     Debug = opt.Debug,
                     GenerateObj = true,
                     Texture = Path.GetFileName(opt.Texture),
@@ -67,9 +68,26 @@ namespace PyriteCli
                     CubeGrid = new Vector3 { X = opt.XSize, Y = opt.YSize, Z = opt.ZSize }
                 };
 
+                string objPath;
+                if (opt.Input.First().StartsWith("http"))
+                {
+                    objPath = opt.Input.First();
+                }
+                else
+                {
+                    objPath = UploadBlob(opt.Input.First(), Guid.NewGuid().ToString(), "processingdata");
+                }
+
                 
-                string objPath = UploadBlob(opt.Input.First(), Guid.NewGuid().ToString(), "processingdata");
-                string texPath = UploadBlob(opt.Texture, Guid.NewGuid().ToString(), "processingdata");
+                string texPath ;
+                if (opt.Texture.StartsWith("http"))
+                {
+                    texPath = opt.Texture;
+                }
+                else
+                {
+                    texPath = UploadBlob(opt.Texture, Guid.NewGuid().ToString(), "processingdata");
+                }
 
                 options.CloudObjPath = objPath;
                 options.CloudTexturePath = texPath;
@@ -138,6 +156,10 @@ namespace PyriteCli
         [NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
             Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
         public bool Ebo { get; set; }
+
+        [NamedArgument('p', "openctm", Action = ParseAction.StoreTrue,
+            Description = "Generate OpenCtm files designed for use with CubeServer in addition to OBJ files")]
+        public bool OpenCtm { get; set; }
 
         [NamedArgument('a', "markupUV", Action = ParseAction.StoreTrue,
             Description = "Draws UVW's on a texture")]
