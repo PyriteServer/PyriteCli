@@ -226,7 +226,7 @@ namespace PyriteLib
 			if (options.GenerateObj)
 			{
                 string comment = string.Format("Texture Tile {0},{1}", tile.X, tile.Y);
-				WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList, comment);
+                WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList, comment);
                 chunkFaceList.AsParallel().ForAll(f => f.RevertVertices());
 			}
 

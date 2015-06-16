@@ -85,7 +85,7 @@ namespace PyriteLib
 		public RectangleTransform[] GenerateTextureTile(string outputPath, int tileX, int tileY, SlicingOptions options)
 		{                        
 			List<Face> chunkFaceList = GetFaceListFromTextureTile(options.TextureSliceY, options.TextureSliceX, tileX, tileY, TargetObj).ToList();
-
+            
 			if (!chunkFaceList.Any())
 			{
 				Trace.TraceInformation("No faces found in tile {0}, {1}.  No texture generated.", tileX, tileY);
@@ -93,10 +93,15 @@ namespace PyriteLib
 			}
 
             Size originalSize;
-            lock (sourceLock)
-            {
-                originalSize = source.Size;
-            }
+
+            // Create a clone of the source to use independent of other threads
+		    Image clonedSource;
+		    lock (sourceLock)
+		    {
+                clonedSource = (Image)source.Clone();
+		    }
+
+            originalSize = clonedSource.Size;
 			Size newSize = new Size();
 
             Trace.TraceInformation("Generating sparse texture for tile {0}, {1}", tileX, tileY);
@@ -122,11 +127,10 @@ namespace PyriteLib
 			newSize.Height = NextPowerOfTwo(newSize.Height);
 
             // Build the new bin packed and cropped texture
-            lock (sourceLock)
-            {
-                WriteNewTexture(outputPath, options.TextureScale, newSize, source, sourceRects, destinationRects);
-            }
+            WriteNewTexture(outputPath, options.TextureScale, newSize, clonedSource, sourceRects, destinationRects);
+
 			// Generate the UV transform array
+            clonedSource.Dispose();
 			return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
 			
 		}

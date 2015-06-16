@@ -63,13 +63,14 @@ namespace PyriteLib
 
         public static void EnumerateSpaceParallel(int X, int Y, Action<int, int> Action)
         {
-			for (int y = 0; y < Y; y++)
-			{
-				Parallel.For(0, X, (x) =>
-				{
-					Action(x, y);
-				});
-            }
+            var space = from x in Enumerable.Range(0, X)
+                from y in Enumerable.Range(0, Y)
+                select new Tuple<int, int>(x, y);
+
+            Parallel.ForEach(space, (spacePartition) =>
+            {
+                Action(spacePartition.Item1, spacePartition.Item2);
+            });
         }
 
         public static bool GetIntersection(double fDst1, double fDst2, Vector3D P1, Vector3D P2, out Vector3D hit)
