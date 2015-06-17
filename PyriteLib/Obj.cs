@@ -157,7 +157,7 @@ namespace PyriteLib
 								face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
 							}
 
-							Trace.TraceInformation("Added new VT: " + newIndex);
+                            //Trace.TraceInformation("Added new VT: " + newIndex);
 						}
 						else
 						{

@@ -63,7 +63,7 @@ namespace PyriteCli
                             GenerateEbo = opt.Ebo,
                             GenerateOpenCtm =  opt.OpenCtm,
                             Debug = opt.Debug,
-                            GenerateObj = true,
+                            GenerateObj = opt.Obj,
                             Texture = opt.Texture,
                             Obj = path,
                             TextureScale = opt.ScaleTexture,
@@ -141,12 +141,16 @@ namespace PyriteCli
 			Description = "Include a texture to partition during cube slicing. Will rewrite UV's in output files. Requires -tx -ty parameters.")]
 		public string Texture { get; set; }
 
+        [NamedArgument('o', "obj", Action = ParseAction.StoreTrue,
+            Description = "Generate OBJ files designed for use with CubeServer")]
+        public bool Obj { get; set; }   
+
 		[NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
-			Description = "Generate EBO files designed for use with CubeServer in addition to OBJ files")]
+			Description = "Generate EBO files designed for use with CubeServer")]
 		public bool Ebo { get; set; }
 
         [NamedArgument('p', "openctm", Action = ParseAction.StoreTrue,
-            Description = "Generate OpenCtm files designed for use with CubeServer in addition to OBJ files")]
+            Description = "Generate OpenCtm files designed for use with CubeServer")]
         public bool OpenCtm { get; set; }
 
 		[NamedArgument('a', "markupUV", Action = ParseAction.StoreTrue,
