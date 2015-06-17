@@ -70,19 +70,22 @@ namespace PyriteLib.Types
         }
 
 		public int CloneOriginal(List<TextureVertex> textureVertexList)
-		{
-			int newIndex = textureVertexList.Count + 1;
-            textureVertexList.Add(new TextureVertex
-			{
-				Index = newIndex,
-				X = this.OriginalX,
-				Y = this.OriginalY,
-				OriginalX = this.OriginalX,
-				OriginalY = this.OriginalY,
-				Transformed = false
-			});
+        {
+		    lock (textureVertexList)
+		    {
+		        int newIndex = textureVertexList.Count + 1;
+		        textureVertexList.Add(new TextureVertex
+		        {
+		            Index = newIndex,
+		            X = this.OriginalX,
+		            Y = this.OriginalY,
+		            OriginalX = this.OriginalX,
+		            OriginalY = this.OriginalY,
+		            Transformed = false
+		        });
 
-			return newIndex;
-		}
+		        return newIndex;
+		    }
+        }
     }
 }

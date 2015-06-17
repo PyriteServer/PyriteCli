@@ -116,68 +116,74 @@ namespace PyriteLib
         }
 
 
-		/// <summary>
-		/// Updates all UV coordinates (Texture Vertex) based on
-		/// the rectangular transforms which may be included in
-		/// slicing options if texture partitioning has occurred.
-		/// </summary>
-		public void TransformUVs(SlicingOptions options)
-		{
-			Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
+        /// <summary>
+        /// Updates all UV coordinates (Texture Vertex) based on
+        /// the rectangular transforms which may be included in
+        /// slicing options if texture partitioning has occurred.
+        /// </summary>
+        public void TransformUVs(SlicingOptions options)
+        {
+            Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
+            foreach (var uvTransform in options.UVTransforms)
+            {
+                TransformUVsForTextureTile(options ,uvTransform.Key, uvTransform.Value);
+            }
+        }
 
-			foreach (var textureTile in options.UVTransforms.Keys)
+        public void TransformUVsForTextureTile(SlicingOptions options, Vector2 textureTile, RectangleTransform[] uvTransforms) 
+        {
+            Trace.TraceInformation("Transforming UV points for texture tile {0},{1}", textureTile.X, textureTile.Y);
+
+            var faces = Texture.GetFaceListFromTextureTile(
+                options.TextureSliceY, 
+                options.TextureSliceX,
+                textureTile.X,
+                textureTile.Y, 
+                this);
+
+            var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct();
+			var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
+            foreach (var uv in uvs)
 			{
-                var faces = Texture.GetFaceListFromTextureTile(
-                    options.TextureSliceY, 
-                    options.TextureSliceX, 
-                    textureTile.X, 
-                    textureTile.Y, 
-                    this);
+                var transforms = uvTransforms.Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
 
-                var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct();
-				var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
-                foreach (var uv in uvs)
+				if (transforms.Any())
 				{
-					var transforms = options.UVTransforms[textureTile].Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
+					RectangleTransform transform = transforms.First();
 
-					if (transforms.Any())
+					if (uv.Transformed)
 					{
-						RectangleTransform transform = transforms.First();
+						// This was already transformed in another extent, so we'll have to copy it
+						int newIndex = uv.CloneOriginal(TextureList);
+						TextureList[newIndex - 1].Transform(transform);
 
-						if (uv.Transformed)
+						// Update all faces using the old UV in this extent
+						var FacesToUpdate = faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index));
+						foreach (var face in FacesToUpdate)
 						{
-							// This was already transformed in another extent, so we'll have to copy it
-							int newIndex = uv.CloneOriginal(TextureList);
-							TextureList[newIndex - 1].Transform(transform);
-
-							// Update all faces using the old UV in this extent
-							var FacesToUpdate = faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index));
-							foreach (var face in FacesToUpdate)
-							{
-								face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
-							}
-
-                            //Trace.TraceInformation("Added new VT: " + newIndex);
+							face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
 						}
-						else
-						{
-							uv.Transform(transform);
-						}
+
+                        //Trace.TraceInformation("Added new VT: " + newIndex);
 					}
 					else
 					{
-						Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, options.UVTransforms[textureTile].Count());
+						uv.Transform(transform);
 					}
 				}
-
-				// Write out a marked up image file showing where lost UV's occured
-				if (options.Debug)
+				else
 				{
-					var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
-					var relevantTransforms = options.UVTransforms[textureTile];
-					if (relevantTransforms.Any() && notTransformedUVs.Any())
-						options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
+                    Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, uvTransforms.Count());
 				}
+			}
+
+			// Write out a marked up image file showing where lost UV's occured
+            if (options.Debug)
+            {
+                var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
+                var relevantTransforms = uvTransforms;
+                if (relevantTransforms.Any() && notTransformedUVs.Any())
+                    options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
             }
 		}
 

@@ -10,7 +10,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
-
+using System.Threading.Tasks;
 
 public class MaxRectanglesBinPack
 {
@@ -446,29 +446,40 @@ public class MaxRectanglesBinPack
 	}
 
 	void PruneFreeList()
-	{
-		for (int i = 0; i < freeRectangles.Count; ++i)
-			for (int j = i + 1; j < freeRectangles.Count; ++j)
-			{
-				if (IsContainedIn(freeRectangles[i], freeRectangles[j]))
-				{
-					freeRectangles.RemoveAt(i);
-					--i;
-					break;
-				}
-				if (IsContainedIn(freeRectangles[j], freeRectangles[i]))
-				{
-					freeRectangles.RemoveAt(j);
-					--j;
-				}
-			}
-	}
+	{   
+        SortedSet<int> rectanglesToRemove = new SortedSet<int>();
 
-	bool IsContainedIn(Rectangle a, Rectangle b)
-	{
-		return a.X >= b.X && a.Y >= b.Y
-			&& a.X + a.Width <= b.X + b.Width
-			&& a.Y + a.Height <= b.Y + b.Height;
-	}
+	    Parallel.For(0, freeRectangles.Count, i =>
+	    {
+	        for (int j = i + 1; j < freeRectangles.Count; ++j)
+	        {
+	            if (rectanglesToRemove.Contains(j) || rectanglesToRemove.Contains(i))
+	            {
+	                break;
+	            }
 
+	            if (freeRectangles[j].Contains(freeRectangles[i]))
+	            {
+	                lock (rectanglesToRemove)
+	                {
+	                    rectanglesToRemove.Add(i);
+	                }
+	                break;
+	            }
+
+	            if (freeRectangles[i].Contains(freeRectangles[j]))
+	            {
+	                lock (rectanglesToRemove)
+	                {
+	                    rectanglesToRemove.Add(j);
+	                }
+	            }
+	        }
+	    });
+
+	    foreach (var rectangleToRemove in rectanglesToRemove.Reverse())
+	    {
+	        freeRectangles.RemoveAt(rectangleToRemove);
+	    }
+	}
 }

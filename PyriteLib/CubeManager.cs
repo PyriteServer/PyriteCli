@@ -43,7 +43,6 @@ namespace PyriteLib
 			if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
 			{
 				options.UVTransforms = GenerateTextures(Path.Combine(outputPath, TextureSubDirectory), options);
-				ObjInstance.TransformUVs(options);
                 metadata.TextureSetSize = new Vector2(options.TextureSliceX, options.TextureSliceY);
 			}
             else
@@ -88,6 +87,7 @@ namespace PyriteLib
 
 				var transform = t.GenerateTextureTile(fileOutPath, x, y, options);
 				transforms.Add(new Vector2(x, y), transform);
+                ObjInstance.TransformUVsForTextureTile(options, new Vector2(x, y), transform);
             });
 
 			return transforms;
