@@ -15,7 +15,9 @@ Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "PyriteCloudWorker", "Pyrite
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCloudRole", "PyriteCloudRole\PyriteCloudRole.csproj", "{A3924EF2-37C3-4188-B395-D78EFAE3C2AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCloudCLI", "PyriteCloudCLI\PyriteCloudCLI.csproj", "{B8197E1F-FB93-443E-89F1-7DDB14726A10}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCliCommon", "PyriteCliCommon\PyriteCliCommon.csproj", "{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCloudCli", "PyriteCloudCli\PyriteCloudCli.csproj", "{B8197E1F-FB93-443E-89F1-7DDB14726A10}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -87,6 +89,18 @@ Global
 		{A3924EF2-37C3-4188-B395-D78EFAE3C2AD}.Release|ARM.Build.0 = Release|Any CPU
 		{A3924EF2-37C3-4188-B395-D78EFAE3C2AD}.Release|x86.ActiveCfg = Release|Any CPU
 		{A3924EF2-37C3-4188-B395-D78EFAE3C2AD}.Release|x86.Build.0 = Release|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Debug|ARM.Build.0 = Debug|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Debug|x86.Build.0 = Debug|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Release|ARM.ActiveCfg = Release|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Release|ARM.Build.0 = Release|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Release|x86.ActiveCfg = Release|Any CPU
+		{CDE7E7F8-AE65-4573-BDEE-933C26E3281B}.Release|x86.Build.0 = Release|Any CPU
 		{B8197E1F-FB93-443E-89F1-7DDB14726A10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B8197E1F-FB93-443E-89F1-7DDB14726A10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8197E1F-FB93-443E-89F1-7DDB14726A10}.Debug|ARM.ActiveCfg = Debug|Any CPU

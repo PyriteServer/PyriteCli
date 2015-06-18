@@ -33,8 +33,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="clipr, Version=1.4.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\clipr.1.4.5.0\lib\net35\clipr.dll</HintPath>
+    <Reference Include="clipr, Version=1.4.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\clipr.1.4.7.0\lib\net35\clipr.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Data.Edm, Version=5.6.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -76,6 +76,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CloudOptions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -93,6 +94,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PyriteCliCommon\PyriteCliCommon.csproj">
+      <Project>{cde7e7f8-ae65-4573-bdee-933c26e3281b}</Project>
+      <Name>PyriteCliCommon</Name>
+    </ProjectReference>
     <ProjectReference Include="..\PyriteLib\PyriteLib.csproj">
       <Project>{c0bd104e-2930-432c-832e-f7cb38ccbe05}</Project>
       <Name>PyriteLib</Name>
