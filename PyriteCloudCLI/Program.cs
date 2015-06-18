@@ -8,10 +8,11 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Newtonsoft.Json;
 using PyriteCliCommon;
+using PyriteCloudCLI;
 using PyriteCloudCLI.Properties;
 using PyriteLib;
 
-namespace PyriteCloudCli
+namespace PyriteCli
 {
     class Program
     {
@@ -33,11 +34,11 @@ namespace PyriteCloudCli
             // Create the queue if it doesn't already exist
             WorkQueue.CreateIfNotExists();
 
-            Options opt;
+            CloudOptions opt;
 
             try
             {
-                opt = CliParser.Parse<Options>(args);
+                opt = CliParser.Parse<CloudOptions>(args);
 
                 if (opt.ForceCubical)
                 {
@@ -86,7 +87,7 @@ namespace PyriteCloudCli
 
                 options.CloudObjPath = objPath;
                 options.CloudTexturePath = texPath;
-                options.CloudResultContainer = "nashvillenew";
+                options.CloudResultContainer = opt.OutputContainer;
                 options.CloudResultPath = opt.OutputPath;
 
                 string message = JsonConvert.SerializeObject(options);
