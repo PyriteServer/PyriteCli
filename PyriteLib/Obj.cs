@@ -134,6 +134,8 @@ namespace PyriteLib
         {
             Trace.TraceInformation("Transforming UV points for texture tile {0},{1}", textureTile.X, textureTile.Y);
 
+            int newUVCount = 0, failedUVCount = 0, transformUVCount = 0;
+
             var faces = Texture.GetFaceListFromTextureTile(
                 options.TextureSliceY, 
                 options.TextureSliceX,
@@ -164,18 +166,21 @@ namespace PyriteLib
 							face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
 						}
 
-                        //Trace.TraceInformation("Added new VT: " + newIndex);
+                        newUVCount++;
 					}
 					else
 					{
 						uv.Transform(transform);
-					}
+                        transformUVCount++;
+                    }
 				}
 				else
 				{
-                    Trace.TraceWarning("No transform found for UV ({0}, {1}) across {2} transforms", uv.X, uv.Y, uvTransforms.Count());
+                    failedUVCount++;
 				}
 			}
+            
+            Trace.TraceInformation("UV Transform results ({3},{4}): {0} success, {1} new, {2} failed.", transformUVCount, newUVCount, failedUVCount, textureTile.X, textureTile.Y);
 
 			// Write out a marked up image file showing where lost UV's occured
             if (options.Debug)
