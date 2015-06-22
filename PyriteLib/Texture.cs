@@ -82,13 +82,13 @@ namespace PyriteLib
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
-		public RectangleTransform[] GenerateTextureTile(string outputPath, int tileX, int tileY, SlicingOptions options)
+		public RectangleTransform[] GenerateTextureTile(string outputPath, Vector2 tile, SlicingOptions options)
 		{                        
-			List<Face> chunkFaceList = GetFaceListFromTextureTile(options.TextureSliceY, options.TextureSliceX, tileX, tileY, TargetObj).ToList();
+			List<Face> chunkFaceList = GetFaceListFromTextureTile(options.TextureSliceY, options.TextureSliceX, tile.X, tile.Y, TargetObj).ToList();
             
 			if (!chunkFaceList.Any())
 			{
-				Trace.TraceInformation("No faces found in tile {0}, {1}.  No texture generated.", tileX, tileY);
+				Trace.TraceInformation("No faces found in tile {0}.  No texture generated.", tile);
 				return new RectangleTransform[0];
 			}
 
@@ -104,7 +104,7 @@ namespace PyriteLib
             originalSize = clonedSource.Size;
 			Size newSize = new Size();
 
-            Trace.TraceInformation("Generating sparse texture for tile {0}, {1}", tileX, tileY);
+            Trace.TraceInformation("Generating sparse texture for tile {0}", tile);
 
 			// Identify blob rectangles
 			var groupedFaces = FindConnectedFaces(chunkFaceList);

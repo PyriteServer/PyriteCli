@@ -201,7 +201,7 @@ namespace PyriteLib
 		/// <param name="gridWidth">X size of grid</param>
 		/// <param name="cubeX">Zero based X index of cube</param>
 		/// <param name="cubeY">Zero based Y index of cube</param>
-        public int WriteSpecificCube(string path, int cubeX, int cubeY, int cubeZ, SlicingOptions options)
+        public int WriteSpecificCube(string path, Vector3 cube, SlicingOptions options)
         {
 			string objPath = path + ".obj";
 			string eboPath = path + ".ebo";
@@ -220,7 +220,7 @@ namespace PyriteLib
 
 			// Get all faces in this cube
 			List<Face> chunkFaceList;
-			chunkFaceList = FaceMatrix[cubeX, cubeY, cubeZ];
+			chunkFaceList = FaceMatrix[cube.X, cube.Y, cube.Z];
 
 			if (!chunkFaceList.Any())
 				return 0;            
@@ -232,7 +232,7 @@ namespace PyriteLib
 				WriteEboFormattedFile(eboPath, options.OverrideMtl, chunkFaceList);
 			}
 
-            var tile = Texture.GetTextureCoordFromCube(options.TextureSliceY, options.TextureSliceX, cubeX, cubeY, this);
+            var tile = Texture.GetTextureCoordFromCube(options.TextureSliceY, options.TextureSliceX, cube.X, cube.Y, this);
 
 			if (options.GenerateObj)
 			{

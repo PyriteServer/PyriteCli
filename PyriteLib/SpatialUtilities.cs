@@ -18,16 +18,7 @@ namespace PyriteLib
 		/// <param name="Action">Action to preform</param>
 		public static void EnumerateSpace(int X, int Y, int Z, Action<int, int, int> Action)
 		{
-			for (int x = 0; x < X; x++)
-			{
-				for (int y = 0; y < Y; y++)
-				{
-					for (int z = 0; z < Z; z++)
-					{
-						Action(x, y, z);
-					}
-				}
-			}
+            EnumerateSpace(new Vector3(X, Y, Z), Action);
 		}
 
 		public static void EnumerateSpace(Vector3 size, Action<int, int, int> Action)
@@ -52,14 +43,19 @@ namespace PyriteLib
 		/// <param name="Action">Action to preform</param>
 		public static void EnumerateSpace(int X, int Y, Action<int, int> Action)
 		{
-			for (int x = 0; x < X; x++)
-			{
-				for (int y = 0; y < Y; y++)
-				{
-					Action(x, y);
-				}
-			}
+            EnumerateSpace(new Vector2(X, Y), Action);
 		}
+
+        public static void EnumerateSpace(Vector2 size, Action<int, int> Action)
+        {
+            for (int x = 0; x < size.X; x++)
+            {
+                for (int y = 0; y < size.Y; y++)
+                {
+                    Action(x, y);
+                }
+            }
+        }
 
         public static void EnumerateSpaceParallel(int X, int Y, Action<int, int> Action)
         {

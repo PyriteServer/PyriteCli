@@ -39,10 +39,9 @@ namespace PyriteLib
 				VirtualWorldBounds = options.ForceCubicalCubes ? ObjInstance.CubicalSize : ObjInstance.Size,
 				VertexCount = ObjInstance.VertexList.Count };
 
-			// If appropriate, generate textures and save transforms first
+			// Configure texture slicing metadata
 			if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
 			{
-				options.UVTransforms = GenerateTextures(Path.Combine(outputPath, TextureSubDirectory), options);
                 metadata.TextureSetSize = new Vector2(options.TextureSliceX, options.TextureSliceY);
 			}
             else
@@ -50,13 +49,15 @@ namespace PyriteLib
                 metadata.TextureSetSize = new Vector2(1, 1);
             }
 
-			// Generate some tiles			
-			SpatialUtilities.EnumerateSpace(size, (x, y, z) =>
+			// Generate the data			
+			SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, (x, y) =>
 			{
-				Trace.TraceInformation("Processing cube [{0}, {1}, {2}]", x, y, z);
-				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", x, y, z));
-				int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, x, y, z, options);
-				metadata.CubeExists[x, y, z] = vertexCount > 0;
+                var vertexCounts = GenerateCubesForTextureTile(outputPath, new Vector2(x, y), options);
+
+                foreach (var cube in vertexCounts.Keys)
+                {
+                    metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] >  0;
+                }
 			});			
 
 			// Write out some json metadata
@@ -67,30 +68,48 @@ namespace PyriteLib
 			File.WriteAllText(metadataPath, metadataString);
         }
 
-		public Dictionary<Vector2, RectangleTransform[]> GenerateTextures(string outputPath, SlicingOptions options)
-		{
-			if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
+        public Dictionary<Vector3, int> GenerateCubesForTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
+        {
+            Dictionary<Vector3, int> vertexCounts = new Dictionary<Vector3, int>();
 
-			Trace.TraceInformation("Generating textures.");
+            // If appropriate, generate textures and save transforms first
+            if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
+            {
+                ProcessTextureTile(Path.Combine(outputPath, TextureSubDirectory), textureTile, options);               
+            }
 
-			Dictionary<Vector2, RectangleTransform[]> transforms = new Dictionary<Vector2, RectangleTransform[]>();
-
-			// Create texture
-			Texture t = new Texture(this.ObjInstance, options.Texture);
-
-			// Hold a ref to the texture instance for debugging
-			options.TextureInstance = t;
-
-			SpatialUtilities.EnumerateSpaceParallel(options.TextureSliceX, options.TextureSliceY, (x, y) =>
-			{	
-				string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", x, y));
-
-				var transform = t.GenerateTextureTile(fileOutPath, x, y, options);
-				transforms.Add(new Vector2(x, y), transform);
-                ObjInstance.TransformUVsForTextureTile(options, new Vector2(x, y), transform);
+            // Generate some cubes		
+            var cubes = Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, textureTile.X, textureTile.Y, ObjInstance).ToList();
+            cubes.ForEach(v =>
+            {
+                Trace.TraceInformation("Processing cube ", v);
+                string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", v.X, v.Y, v.Z));
+                int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, v, options);
+                vertexCounts.Add(v, vertexCount);
             });
 
-			return transforms;
+            return vertexCounts;
+        }
+
+		public void ProcessTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
+		{
+            Trace.TraceInformation("Processing texture tile {0}", textureTile);
+            if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
+
+            // Create texture
+            if (options.TextureInstance == null)
+            {
+                Texture t = new Texture(this.ObjInstance, options.Texture);
+                options.TextureInstance = t;
+            }
+	
+			string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", textureTile.X, textureTile.Y));
+
+            // Generate new texture
+			var transform = options.TextureInstance.GenerateTextureTile(fileOutPath, textureTile, options);
+
+            // Transform associated UV's
+            ObjInstance.TransformUVsForTextureTile(options, textureTile, transform);      
 		}
 
 		// Action to show incremental file loading status
