@@ -313,6 +313,11 @@ namespace PyriteLib
 
 		public static IEnumerable<Face> GetFaceListFromTextureTile(int gridHeight, int gridWidth, int tileX, int tileY, Obj obj)
 		{
+            return GetCubeListFromTextureTile(gridHeight, gridWidth, tileX, tileY, obj).AsParallel().SelectMany(v => obj.FaceMatrix[v.X, v.Y, v.Z]);
+        }
+
+        public static IEnumerable<Vector3> GetCubeListFromTextureTile(int gridHeight, int gridWidth, int tileX, int tileY, Obj obj)
+        {
             int xRatio = obj.FaceMatrix.GetLength(0) / gridWidth;
             int yRatio = obj.FaceMatrix.GetLength(1) / gridHeight;
 
@@ -320,8 +325,7 @@ namespace PyriteLib
             return from x in Enumerable.Range(tileX * xRatio, xRatio)
                    from y in Enumerable.Range(tileY * yRatio, yRatio)
                    from z in Enumerable.Range(0, maxZ)
-                   from face in obj.FaceMatrix[x, y, z]
-                   select face;
+                   select new Vector3(x, y, z);
         }
 
         public static Vector2 GetTextureCoordFromCube(int gridHeight, int gridWidth, int cubeX, int cubeY, Obj obj)

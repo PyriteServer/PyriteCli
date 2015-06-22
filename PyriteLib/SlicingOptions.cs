@@ -29,6 +29,7 @@ namespace PyriteLib
         public string CloudTexturePath { get; set; }
         public string CloudResultPath { get; set; }
         public string CloudResultContainer { get; set; }
+        public Vector2 TextureTile { get; set; }
 
     }
 }
