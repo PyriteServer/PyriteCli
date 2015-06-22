@@ -59,9 +59,14 @@ namespace PyriteLib
 
         public static void EnumerateSpaceParallel(int X, int Y, Action<int, int> Action)
         {
-            var space = from x in Enumerable.Range(0, X)
-                from y in Enumerable.Range(0, Y)
-                select new Tuple<int, int>(x, y);
+            EnumerateSpaceParallel(new Vector2(X, Y), Action);
+        }
+
+        public static void EnumerateSpaceParallel(Vector2 size, Action<int, int> Action)
+        {
+            var space = from x in Enumerable.Range(0, size.X)
+                        from y in Enumerable.Range(0, size.Y)
+                        select new Tuple<int, int>(x, y);
 
             Parallel.ForEach(space, (spacePartition) =>
             {

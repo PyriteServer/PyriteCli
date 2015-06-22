@@ -192,15 +192,16 @@ namespace PyriteLib
             }
 		}
 
-		/// <summary>
-		/// Write a single "cube".
-		/// Pending addition of Z-axis so that they are actually cubes.
-		/// </summary>
-		/// <param name="path">Output path</param>
-		/// <param name="gridHeight">Y size of grid</param>
-		/// <param name="gridWidth">X size of grid</param>
-		/// <param name="cubeX">Zero based X index of cube</param>
-		/// <param name="cubeY">Zero based Y index of cube</param>
+        /// <summary>
+        /// Write a single "cube".
+        /// Pending addition of Z-axis so that they are actually cubes.
+        /// </summary>
+        /// <param name="path">Output path</param>
+        /// <param name="gridHeight">Y size of grid</param>
+        /// <param name="gridWidth">X size of grid</param>
+        /// <param name="cubeX">Zero based X index of cube</param>
+        /// <param name="cubeY">Zero based Y index of cube</param>
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public int WriteSpecificCube(string path, Vector3 cube, SlicingOptions options)
         {
 			string objPath = path + ".obj";
