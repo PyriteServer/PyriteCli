@@ -152,27 +152,29 @@ namespace PyriteLib
 				if (transforms.Any())
 				{
 					RectangleTransform transform = transforms.First();
+				    lock (uv)
+				    {
+				        if (uv.Transformed)
+				        {
+				            // This was already transformed in another extent, so we'll have to copy it
+				            int newIndex = uv.CloneOriginal(TextureList);
+				            TextureList[newIndex - 1].Transform(transform);
 
-					if (uv.Transformed)
-					{
-						// This was already transformed in another extent, so we'll have to copy it
-						int newIndex = uv.CloneOriginal(TextureList);
-						TextureList[newIndex - 1].Transform(transform);
+				            // Update all faces using the old UV in this extent
+				            var FacesToUpdate = faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index));
+				            foreach (var face in FacesToUpdate)
+				            {
+				                face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
+				            }
 
-						// Update all faces using the old UV in this extent
-						var FacesToUpdate = faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index));
-						foreach (var face in FacesToUpdate)
-						{
-							face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
-						}
-
-                        newUVCount++;
-					}
-					else
-					{
-						uv.Transform(transform);
-                        transformUVCount++;
-                    }
+				            newUVCount++;
+				        }
+				        else
+				        {
+				            uv.Transform(transform);     
+				            transformUVCount++;
+				        }
+				    }
 				}
 				else
 				{
@@ -209,7 +211,7 @@ namespace PyriteLib
 		    string openCtmPath = path + ".ctm";
 
 			// Delete files or handle resume if the required ones already exist
-			CleanOldFiles(options, objPath, eboPath);
+			CleanOldFiles(options, objPath, eboPath, openCtmPath);
 
 
 			// Revert all vertices in case we previously changed their indexes
@@ -456,7 +458,7 @@ namespace PyriteLib
             return result;
         }
 
-        private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath)
+        private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath, string ctmPath)
 		{
 			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
 
@@ -469,6 +471,11 @@ namespace PyriteLib
 			{
 				File.Delete(eboPath);
 			}
+
+            if (options.GenerateOpenCtm)
+            {
+                File.Delete(ctmPath);
+            }
 		}
 
 		private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, string comment = "")

@@ -49,8 +49,21 @@ namespace PyriteLib
                 metadata.TextureSetSize = new Vector2(1, 1);
             }
 
+            if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
+
+            // Create texture
+            lock (options)
+            {
+                if (options.TextureInstance == null)
+                {
+                    Texture t = new Texture(this.ObjInstance, options.Texture);
+                    options.TextureInstance = t;
+                }
+            }
+
+
 			// Generate the data			
-			SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, (x, y) =>
+			SpatialUtilities.EnumerateSpaceParallel(metadata.TextureSetSize, (x, y) =>
 			{
                 var vertexCounts = GenerateCubesForTextureTile(outputPath, new Vector2(x, y), options);
 
@@ -94,16 +107,8 @@ namespace PyriteLib
 		public void ProcessTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
 		{
             Trace.TraceInformation("Processing texture tile {0}", textureTile);
-            if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
 
-            // Create texture
-            if (options.TextureInstance == null)
-            {
-                Texture t = new Texture(this.ObjInstance, options.Texture);
-                options.TextureInstance = t;
-            }
-	
-			string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", textureTile.X, textureTile.Y));
+		    string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", textureTile.X, textureTile.Y));
 
             // Generate new texture
 			var transform = options.TextureInstance.GenerateTextureTile(fileOutPath, textureTile, options);
