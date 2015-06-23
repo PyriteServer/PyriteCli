@@ -50,15 +50,15 @@ namespace PyriteLib
             }
 
 			// Generate the data			
-			SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, async (x, y) =>
+			SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, (x, y) =>
 			{
-                var vertexCounts = await GenerateCubesForTextureTile(outputPath, new Vector2(x, y), options);
+                var vertexCounts = GenerateCubesForTextureTile(outputPath, new Vector2(x, y), options);
 
                 foreach (var cube in vertexCounts.Keys)
                 {
                     metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] >  0;
                 }
-			});			
+			});
 
 			// Write out some json metadata
 			string metadataPath = Path.Combine(outputPath, "metadata.json");
@@ -68,7 +68,7 @@ namespace PyriteLib
 			File.WriteAllText(metadataPath, metadataString);
         }
 
-        public async Task<Dictionary<Vector3, int>> GenerateCubesForTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
+        public Dictionary<Vector3, int> GenerateCubesForTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
         {          
             // If appropriate, generate textures and save transforms first
             if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
@@ -77,18 +77,16 @@ namespace PyriteLib
             }
 
             Dictionary<Vector3, int> vertexCounts = new Dictionary<Vector3, int>();
-
-            await Task.Factory.StartNew(() => {
-                // Generate some cubes		                
-                var cubes = Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, textureTile.X, textureTile.Y, ObjInstance).ToList();
-                cubes.ForEach(v =>
-                {
-                    Trace.TraceInformation("Processing cube ", v);
-                    string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", v.X, v.Y, v.Z));
-                    int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, v, options);
-                    vertexCounts.Add(v, vertexCount);
-                });               
-            });
+           
+            // Generate some cubes		                
+            var cubes = Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, textureTile.X, textureTile.Y, ObjInstance).ToList();
+            cubes.ForEach(v =>
+            {
+                Trace.TraceInformation("Processing cube ", v);
+                string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", v.X, v.Y, v.Z));
+                int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, v, options);
+                vertexCounts.Add(v, vertexCount);
+            });                          
 
             return vertexCounts;
         }
