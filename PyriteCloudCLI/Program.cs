@@ -6,8 +6,10 @@ using clipr.Core;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
+using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using PyriteCliCommon;
+using PyriteCliCommon.Models;
 using PyriteCloudCLI;
 using PyriteCloudCLI.Properties;
 using PyriteLib;
@@ -18,6 +20,7 @@ namespace PyriteCli
     {
         public static CloudQueue WorkQueue { get; set; }
         public static CloudBlobClient BlobClient { get; set; }
+        public static CloudTableClient TableClient { get; set; }
 
         static void Main(string[] args)
         {
@@ -27,6 +30,7 @@ namespace PyriteCli
             // Create the clients
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
             BlobClient = storageAccount.CreateCloudBlobClient();
+            TableClient = storageAccount.CreateCloudTableClient();
 
             // Retrieve a reference to a queue
             WorkQueue = queueClient.GetQueueReference(Settings.Default.Queue);
@@ -71,7 +75,7 @@ namespace PyriteCli
                 }
                 else
                 {
-                    objPath = UploadBlob(opt.Input.First(), Guid.NewGuid().ToString(), "processingdata");
+                    objPath = StorageUtilities.UploadBlob(BlobClient, opt.Input.First(), Guid.NewGuid().ToString(), "processingdata");
                 }
 
                 
@@ -82,7 +86,7 @@ namespace PyriteCli
                 }
                 else
                 {
-                    texPath = UploadBlob(opt.Texture, Guid.NewGuid().ToString(), "processingdata");
+                    texPath = StorageUtilities.UploadBlob(BlobClient, opt.Texture, Guid.NewGuid().ToString(), "processingdata");
                 }
 
                 options.CloudObjPath = objPath;
@@ -90,8 +94,32 @@ namespace PyriteCli
                 options.CloudResultContainer = opt.OutputContainer;
                 options.CloudResultPath = opt.OutputPath;
 
-                string message = JsonConvert.SerializeObject(options);
-                WorkQueue.AddMessage(new CloudQueueMessage(message));
+                // Get texture set size
+                Vector2 setSize;
+                if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
+                {
+                    setSize = new Vector2(options.TextureSliceX, options.TextureSliceY);
+                }
+                else
+                {
+                    setSize = new Vector2(1, 1);
+                }
+
+                // Queue work
+                StorageUtilities.InsertSetMetadata(TableClient,
+                    new SetEntity("Set", DateTime.UtcNow)
+                    {
+                        ResultPath = options.CloudResultContainer + options.CloudResultPath,
+                        TextureTilesX = setSize.X,
+                        TextureTilesY = setSize.Y
+                    });
+
+                SpatialUtilities.EnumerateSpace(setSize, (x, y) =>
+                {
+                    options.TextureTile = new Vector2(x, y);
+                    string message = JsonConvert.SerializeObject(options);
+                    WorkQueue.AddMessage(new CloudQueueMessage(message));
+                });
 
             }
             catch (ParserExit)
@@ -102,14 +130,6 @@ namespace PyriteCli
             {
                 Console.WriteLine("usage: Cuber --help");
             }
-        }
-
-        private static string UploadBlob(string localPath, string remotePath, string containerName)
-        {
-            var container = BlobClient.GetContainerReference(containerName);
-            var blob = container.GetBlockBlobReference(remotePath);
-            blob.UploadFromFile(localPath, FileMode.Open);
-            return (blob.Uri.ToString());
         }
 
     }

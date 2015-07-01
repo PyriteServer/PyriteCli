@@ -11,6 +11,7 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Newtonsoft.Json;
+using PyriteCliCommon;
 using PyriteLib;
 
 namespace PyriteCloudRole
@@ -74,16 +75,28 @@ namespace PyriteCloudRole
                 slicingOptions.Obj = Path.Combine(inputPath, slicingOptions.Obj);
                 slicingOptions.Texture = Path.Combine(inputPath, slicingOptions.Texture);
 
-                // Prep
+                // ** Prep
                 Trace.TraceInformation("Syncing data");
                 VerifySourceData(slicingOptions);
 
-                // Run
+                // ** Run
                 Trace.TraceInformation("Starting Processing");
                 CubeManager manager = new CubeManager(slicingOptions);
-                manager.GenerateCubes(outputPath, slicingOptions);
+                
+                if (!string.IsNullOrEmpty(slicingOptions.Texture))
+                {
+                    slicingOptions.TextureInstance = new Texture(manager.ObjInstance, slicingOptions.Texture);
+                }	
+                	
+                var vertexCounts = manager.GenerateCubesForTextureTile(outputPath, slicingOptions.TextureTile, slicingOptions);
 
-                // Cleanup
+                foreach (var cube in vertexCounts.Keys)
+                {
+                    // write to table!
+                    //metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] > 0;
+                }           
+
+                // ** Cleanup
                 Trace.TraceInformation("Writing Results");
                 UploadResultData(slicingOptions);
             }
@@ -98,7 +111,8 @@ namespace PyriteCloudRole
             var files = Directory.GetFiles(outputPath, "*", SearchOption.AllDirectories);
             foreach (var file in files)
             {
-                UploadBlob(
+                StorageUtilities.UploadBlob(
+                    BlobClient,
                     file, 
                     Path.Combine(slicingOptions.CloudResultPath, file.Replace(outputPath, string.Empty).TrimStart(new char[] { '\\', '/' })).Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), 
                     slicingOptions.CloudResultContainer);
@@ -111,25 +125,15 @@ namespace PyriteCloudRole
         {
             if (!File.Exists(slicingOptions.Obj))
             {
-                DownloadBlob(slicingOptions.Obj, slicingOptions.CloudObjPath);
+                StorageUtilities.DownloadBlob(BlobClient, slicingOptions.Obj, slicingOptions.CloudObjPath);
             }
 
             if (!File.Exists(slicingOptions.Texture))
             {
-                DownloadBlob(slicingOptions.Texture, slicingOptions.CloudTexturePath);
+                StorageUtilities.DownloadBlob(BlobClient, slicingOptions.Texture, slicingOptions.CloudTexturePath);
             }
         }
 
-        private void UploadBlob(string localPath, string remotePath, string containerName)
-        {
-            var container = BlobClient.GetContainerReference(containerName);
-            var blob = container.GetBlockBlobReference(remotePath);
-            blob.UploadFromFile(localPath, FileMode.Open);
-        }
-        private void DownloadBlob(string localPath, string remotePath)
-        {
-            var blob = BlobClient.GetBlobReferenceFromServer(new Uri(remotePath));
-            blob.DownloadToFile(localPath, FileMode.CreateNew);
-        }
+
     }
 }

@@ -85,6 +85,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PyriteCliCommon\PyriteCliCommon.csproj">
+      <Project>{cde7e7f8-ae65-4573-bdee-933c26e3281b}</Project>
+      <Name>PyriteCliCommon</Name>
+    </ProjectReference>
     <ProjectReference Include="..\PyriteLib\PyriteLib.csproj">
       <Project>{c0bd104e-2930-432c-832e-f7cb38ccbe05}</Project>
       <Name>PyriteLib</Name>

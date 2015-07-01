@@ -49,19 +49,13 @@ namespace PyriteLib
                 metadata.TextureSetSize = new Vector2(1, 1);
             }
 
-            if (string.IsNullOrEmpty(options.Texture)) throw new ArgumentNullException("Texture file not specified.");
-
-            // Create texture
-            lock (options)
+            // Create texture if there is one
+            if (!string.IsNullOrEmpty(options.Texture))
             {
-                if (options.TextureInstance == null)
-                {
-                    Texture t = new Texture(this.ObjInstance, options.Texture);
-                    options.TextureInstance = t;
-                }
+                Texture t = new Texture(this.ObjInstance, options.Texture);
+                options.TextureInstance = t;
             }
-
-
+          
 			// Generate the data			
 			SpatialUtilities.EnumerateSpaceParallel(metadata.TextureSetSize, (x, y) =>
 			{
@@ -84,7 +78,7 @@ namespace PyriteLib
         public Dictionary<Vector3, int> GenerateCubesForTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
         {          
             // If appropriate, generate textures and save transforms first
-            if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
+            if (options.Texture != null)
             {
                 ProcessTextureTile(Path.Combine(outputPath, TextureSubDirectory), textureTile, options);               
             }
