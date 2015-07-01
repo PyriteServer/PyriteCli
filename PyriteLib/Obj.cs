@@ -470,6 +470,7 @@ namespace PyriteLib
 			if (options.GenerateEbo)
 			{
 				File.Delete(eboPath);
+                File.Delete(GetEbo2Path(eboPath));
 			}
 
             if (options.GenerateOpenCtm)
@@ -542,10 +543,12 @@ namespace PyriteLib
 
         private void WriteEboFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList)
         {
-            using (var outStream = File.OpenWrite(path))
+            using (var outStream = new MemoryStream())
             using (var writer = new BinaryWriter(outStream))
             {
 				writer.Write((ushort)chunkFaceList.Count);
+                
+                uint oldVoldUVCount = 0, oldVnewUVCount = 0, newVandUVCount = 0;
 
 				for (int fi = 0; fi < chunkFaceList.Count; fi++)
 				{
@@ -559,23 +562,37 @@ namespace PyriteLib
 
 						if (preexisting.Any())
 						{
-							var doubleMatch = preexisting.Where(f => f.TextureVertexIndexList.Contains(desiredTextureIndex));
+						    int indexInFace = -1;
 
-							if (doubleMatch.Any())
+                            // Have we seen this texture vertex before?
+							var faceWithMatchingVertexAndUV = preexisting.FirstOrDefault(f =>
 							{
-								var face = doubleMatch.First();
+							    for (int ti = 0; ti < 3; ti++)
+							    {
+                                    if (f.VertexIndexList[ti] == desiredVertexIndex && f.TextureVertexIndexList[ti] == desiredTextureIndex)
+                                    {
+                                        // Save inner face index that had matching v and uv
+                                        indexInFace = ti;
+							            return true;
+							        }
+							    }
+							    return false;
+							});
 
+                            if (faceWithMatchingVertexAndUV != null)
+							{
 								// The total number of vertices prior to matching face
-								int index = (chunkFaceList.IndexOf(face)) * 3;
+                                int index = (chunkFaceList.IndexOf(faceWithMatchingVertexAndUV)) * 3;
 
 								// Now add the delta to index into this triangle correctly
-								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
 								index += indexInFace;
 
 								// write the back reference instead of the vertex
 								writer.Write((byte)0);
 								writer.Write((UInt32)index);
-								
+
+							    oldVoldUVCount++;
+
 							}
 							else
 							{
@@ -585,15 +602,17 @@ namespace PyriteLib
 								int index = (chunkFaceList.IndexOf(face)) * 3;
 
 								// Now add the delta to index into this triangle correctly
-								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
+								indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
 								index += indexInFace;
 
 								// write the back reference instead of the vertex
 								writer.Write((byte)64);
 								writer.Write((UInt32)index);
 
-								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].X);
-								writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].Y);							
+                                writer.Write((float)TextureList[desiredTextureIndex - 1].X);
+                                writer.Write((float)TextureList[desiredTextureIndex - 1].Y);
+
+							    oldVnewUVCount++;
 
 							}
 						}
@@ -604,13 +623,37 @@ namespace PyriteLib
 							writer.Write((float)VertexList[desiredVertexIndex - 1].Y);
 							writer.Write((float)VertexList[desiredVertexIndex - 1].Z);
 
-							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].X);
-							writer.Write((float)TextureList[chunkFaceList[fi].TextureVertexIndexList[i] - 1].Y);
+                            writer.Write((float)TextureList[desiredTextureIndex - 1].X);
+                            writer.Write((float)TextureList[desiredTextureIndex - 1].Y);
+
+						    newVandUVCount++;
 						}
 					}
 				}
+
 				writer.Write((byte)128);
-			}
+
+                using (var eboFileStream = File.OpenWrite(path))
+                using (var eboWriter = new BinaryWriter(eboFileStream))
+                using (var ebo2FileStream = File.OpenWrite(GetEbo2Path(path)))
+                using (var ebo2Writer = new BinaryWriter(ebo2FileStream))
+                {
+                    //
+                    // Write the ebo header
+                    //
+
+                    // Write the number of faces (triangles) 
+                    eboWriter.Write((ushort) chunkFaceList.Count);
+                    ebo2Writer.Write((ushort)chunkFaceList.Count);
+
+                    // Write the number of unique v,uv pairs
+                    ebo2Writer.Write(newVandUVCount + oldVnewUVCount);
+
+                    // Write out the rest of the data
+                    outStream.WriteTo(eboFileStream);
+                    outStream.WriteTo(ebo2FileStream);
+                }
+            }
         }
 
         /// <summary>
@@ -705,6 +748,11 @@ namespace PyriteLib
         {
             writer.Write(stringToWrite.Length);
             writer.Write(Encoding.UTF8.GetBytes(stringToWrite));
+        }
+
+        private static string GetEbo2Path(string eboPath)
+        {
+            return eboPath + "2";
         }
 
 		/// <summary>
