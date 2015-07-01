@@ -5,13 +5,16 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PyriteLib;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
+using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using PyriteCliCommon;
+using PyriteCliCommon.Models;
 using PyriteLib;
 
 namespace PyriteCloudRole
@@ -20,6 +23,7 @@ namespace PyriteCloudRole
     {
         public CloudQueue WorkQueue { get; set; }
         public CloudBlobClient BlobClient { get; set; }
+        public static CloudTableClient TableClient { get; set; }
 
         private string outputPath, inputPath;
 
@@ -38,6 +42,7 @@ namespace PyriteCloudRole
             // Create the clients
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
             BlobClient = storageAccount.CreateCloudBlobClient();
+            TableClient = storageAccount.CreateCloudTableClient();
 
             // Retrieve a reference to a queue
             WorkQueue = queueClient.GetQueueReference(
@@ -54,7 +59,7 @@ namespace PyriteCloudRole
             try
             {
                 // Get the next message
-                retrievedMessage = WorkQueue.GetMessage();
+                retrievedMessage = WorkQueue.GetMessage(TimeSpan.FromHours(5));
 
                 if (retrievedMessage == null) return;
             }
@@ -62,9 +67,6 @@ namespace PyriteCloudRole
             {
                 return;
             }
-
-            // Just blindly delete the message for now, we have no logic to handle failures anyway
-            WorkQueue.DeleteMessage(retrievedMessage);
 
             var messageContents = retrievedMessage.AsString;
 
@@ -90,20 +92,88 @@ namespace PyriteCloudRole
                 	
                 var vertexCounts = manager.GenerateCubesForTextureTile(outputPath, slicingOptions.TextureTile, slicingOptions);
 
-                foreach (var cube in vertexCounts.Keys)
-                {
-                    // write to table!
-                    //metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] > 0;
-                }           
+                StorageUtilities.InsertWorkCompleteMetadata(TableClient,
+                    new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y, DateTime.UtcNow)
+                    {
+                        MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts)
+                    });
+
+                // ** Check if set is complete
+                CheckForComplete(slicingOptions, manager);
 
                 // ** Cleanup
                 Trace.TraceInformation("Writing Results");
                 UploadResultData(slicingOptions);
+
+                WorkQueue.DeleteMessage(retrievedMessage);
             }
             catch (Exception ex)
             {
                 Trace.TraceError(ex.ToString());
+
+                // Either delete this message or make it visible again for retry
+                if (retrievedMessage.DequeueCount > 3)
+                {
+                    WorkQueue.DeleteMessage(retrievedMessage);
+                }
+                else
+                {
+                    WorkQueue.UpdateMessage(retrievedMessage, TimeSpan.FromSeconds(10), MessageUpdateFields.Visibility);
+                }
             }
+        }
+
+        private void CheckForComplete(SlicingOptions options, CubeManager manager)
+        {
+            int expectedResults = options.TextureSliceX * options.TextureSliceY;
+            
+            if (StorageUtilities.GetWorkCompletedCount(TableClient, options.CloudResultPath) != expectedResults)
+            {
+                return;
+            }
+
+            var workResults = StorageUtilities.GetWorkCompletedMetadata(TableClient, options.CloudResultPath);
+
+            // Write metadata
+
+            CubeMetadata metadata = new CubeMetadata(options.CubeGrid)
+            {
+                WorldBounds = manager.ObjInstance.Size,
+                VirtualWorldBounds = options.ForceCubicalCubes ? manager.ObjInstance.CubicalSize : manager.ObjInstance.Size,
+                VertexCount = manager.ObjInstance.VertexList.Count
+            };
+
+            // Configure texture slicing metadata
+            if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
+            {
+                metadata.TextureSetSize = new Vector2(options.TextureSliceX, options.TextureSliceY);
+            }
+            else
+            {
+                metadata.TextureSetSize = new Vector2(1, 1);
+            }
+
+            var resultsList = workResults.Select(w => 
+            SerializationUtilities.DecodeMetadataFromBase64(
+                Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, w.TextureTileX, w.TextureTileY, manager.ObjInstance), 
+                w.MetadataBase64));            
+
+            foreach (var result in resultsList)
+            {
+                foreach (var cube in result.Keys)
+                {
+                    metadata.CubeExists[cube.X, cube.Y, cube.Z] = result[cube];
+                }
+            }
+        
+
+			// Write out some json metadata
+			string metadataPath = Path.Combine(outputPath, "metadata.json");
+			if (File.Exists(metadataPath)) File.Delete(metadataPath);
+
+			string metadataString = JsonConvert.SerializeObject(metadata);
+            File.WriteAllText(metadataPath, metadataString);
+
         }
 
         private void UploadResultData(SlicingOptions slicingOptions)

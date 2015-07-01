@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 
 namespace PyriteCliCommon.Models
 {
@@ -11,7 +12,7 @@ namespace PyriteCliCommon.Models
     {
         public WorkEntity(string ResultPath, int tileX, int tileY, DateTime completedTime)
         {
-            this.PartitionKey = ResultPath.Replace('/','_').Replace('\\','_');
+            this.PartitionKey = EncodeResultPath(ResultPath);
             this.RowKey = string.Format("{0}_{1}", tileX, tileY);
             this.CompletedTime = completedTime;
             this.TextureTileX = tileX;
@@ -23,6 +24,11 @@ namespace PyriteCliCommon.Models
         public DateTime CompletedTime { get; set; }
         public int TextureTileX { get; set; }
         public int TextureTileY { get; set; }
+        public string MetadataBase64 { get; set; }         
         
+        public static string EncodeResultPath(string path)
+        {
+            return path.Replace('/', '_').Replace('\\', '_');
+        }
     }
 }

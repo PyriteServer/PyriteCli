@@ -51,6 +51,7 @@
     <Compile Include="BinPack\MaxRectsBinPack.cs" />
     <Compile Include="ImageTile.cs" />
     <Compile Include="RectangleTransform.cs" />
+    <Compile Include="SerializationUtilties.cs" />
     <Compile Include="SlicingOptions.cs" />
     <Compile Include="SpatialUtilities.cs" />
     <Compile Include="Texture.cs" />

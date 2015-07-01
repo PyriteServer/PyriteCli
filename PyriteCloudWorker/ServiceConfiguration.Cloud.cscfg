@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ServiceConfiguration serviceName="PyriteCloudWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceConfiguration" osFamily="4" osVersion="*" schemaVersion="2015-04.2.6">
   <Role name="PyriteCloudRole">
-    <Instances count="5" />
+    <Instances count="16" />
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=cubeserver;AccountKey=Ppc9pT/BxOfx36GbKF9bJRhlOey0HclRw2DuWHFmN+0UtC6cwW00/5V38GLs5gfllPUdNkEhb0g6+Pp4aigbBg==" />
       <Setting name="StorageConnectionString" value="DefaultEndpointsProtocol=https;AccountName=cubeserver;AccountKey=Ppc9pT/BxOfx36GbKF9bJRhlOey0HclRw2DuWHFmN+0UtC6cwW00/5V38GLs5gfllPUdNkEhb0g6+Pp4aigbBg==" />

@@ -30,6 +30,7 @@ namespace PyriteCliCommon
         {
             // Create the CloudTable object that represents the "people" table.
             CloudTable table = client.GetTableReference("sets");
+            table.CreateIfNotExists();
 
             // Create the TableOperation that inserts the customer entity.
             TableOperation insertOperation = TableOperation.Insert(set);
@@ -42,12 +43,35 @@ namespace PyriteCliCommon
         {
             // Create the CloudTable object that represents the "people" table.
             CloudTable table = client.GetTableReference("work");
+            table.CreateIfNotExists();
 
             // Create the TableOperation that inserts the customer entity.
             TableOperation insertOperation = TableOperation.Insert(work);
 
             // Execute the insert operation.
             table.Execute(insertOperation);
+        }
+
+        public static int GetWorkCompletedCount(CloudTableClient client, string resultPath)
+        {
+            CloudTable table = client.GetTableReference("work");
+
+            var tiles = from result in table.CreateQuery<WorkEntity>()
+                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath)
+                        select result.RowKey;
+
+            return tiles.ToList().Count();
+        }
+
+        public static IEnumerable<WorkEntity> GetWorkCompletedMetadata(CloudTableClient client, string resultPath)
+        {
+            CloudTable table = client.GetTableReference("work");
+
+            var tiles = from result in table.CreateQuery<WorkEntity>()
+                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath)
+                        select result;
+
+            return tiles;
         }
     }
 }
