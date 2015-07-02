@@ -543,11 +543,11 @@ namespace PyriteLib
 
         private void WriteEboFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList)
         {
+            // Write out ebo body into memory stream first
+            // Header will be written after once certain counts are known
             using (var outStream = new MemoryStream())
             using (var writer = new BinaryWriter(outStream))
             {
-				writer.Write((ushort)chunkFaceList.Count);
-                
                 uint oldVoldUVCount = 0, oldVnewUVCount = 0, newVandUVCount = 0;
 
 				for (int fi = 0; fi < chunkFaceList.Count; fi++)
