@@ -89,7 +89,7 @@ namespace PyriteLib
             var cubes = Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, textureTile.X, textureTile.Y, ObjInstance).ToList();
             cubes.ForEach(v =>
             {
-                Trace.TraceInformation("Processing cube ", v);
+                Trace.TraceInformation("Processing cube {0}", v);
                 string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", v.X, v.Y, v.Z));
                 int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, v, options);
                 vertexCounts.Add(v, vertexCount);

@@ -562,8 +562,6 @@ namespace PyriteLib
 
 						if (preexisting.Any())
 						{
-						    int indexInFace = -1;
-
                             // Have we seen this texture vertex before?
 							var faceWithMatchingVertexAndUV = preexisting.FirstOrDefault(f =>
 							{
@@ -571,8 +569,6 @@ namespace PyriteLib
 							    {
                                     if (f.VertexIndexList[ti] == desiredVertexIndex && f.TextureVertexIndexList[ti] == desiredTextureIndex)
                                     {
-                                        // Save inner face index that had matching v and uv
-                                        indexInFace = ti;
 							            return true;
 							        }
 							    }
@@ -583,7 +579,10 @@ namespace PyriteLib
 							{
 								// The total number of vertices prior to matching face
                                 int index = (chunkFaceList.IndexOf(faceWithMatchingVertexAndUV)) * 3;
-
+							    int indexInFace = Enumerable.Range(0, 3).First((innerIndex) =>
+							         chunkFaceList[index/3].VertexIndexList[innerIndex] == desiredVertexIndex &&
+							         chunkFaceList[index/3].TextureVertexIndexList[innerIndex] == desiredTextureIndex
+							    );
 								// Now add the delta to index into this triangle correctly
 								index += indexInFace;
 
@@ -602,7 +601,7 @@ namespace PyriteLib
 								int index = (chunkFaceList.IndexOf(face)) * 3;
 
 								// Now add the delta to index into this triangle correctly
-								indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
+								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
 								index += indexInFace;
 
 								// write the back reference instead of the vertex
