@@ -10,9 +10,9 @@ namespace PyriteCliCommon.Models
 {
     public class WorkEntity : TableEntity
     {
-        public WorkEntity(string ResultPath, int tileX, int tileY, DateTime completedTime)
+        public WorkEntity(string ResultPath, string container, int tileX, int tileY, DateTime completedTime)
         {
-            this.PartitionKey = EncodeResultPath(ResultPath);
+            this.PartitionKey = EncodeResultPath(ResultPath, container);
             this.RowKey = string.Format("{0}_{1}", tileX, tileY);
             this.CompletedTime = completedTime;
             this.TextureTileX = tileX;
@@ -26,9 +26,9 @@ namespace PyriteCliCommon.Models
         public int TextureTileY { get; set; }
         public string MetadataBase64 { get; set; }         
         
-        public static string EncodeResultPath(string path)
+        public static string EncodeResultPath(string path, string container)
         {
-            return path.Replace('/', '_').Replace('\\', '_');
+            return container + "_" + path.Replace('/', '_').Replace('\\', '_');
         }
     }
 }

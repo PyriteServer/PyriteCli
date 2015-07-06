@@ -29,12 +29,7 @@ namespace PyriteCloudRole
 
         public Scanner()
         {
-            outputPath = Path.Combine(RoleEnvironment.GetLocalResource("output").RootPath, Guid.NewGuid().ToString());
-            inputPath = Path.Combine(RoleEnvironment.GetLocalResource("input").RootPath, Guid.NewGuid().ToString());
-
-            Directory.CreateDirectory(outputPath);
-            Directory.CreateDirectory(inputPath);
-
+      
             // Get storage account
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 CloudConfigurationManager.GetSetting("StorageConnectionString"));
@@ -72,6 +67,14 @@ namespace PyriteCloudRole
 
             try
             {
+                // Make some fresh directories
+                outputPath = Path.Combine(RoleEnvironment.GetLocalResource("output").RootPath, Guid.NewGuid().ToString());
+                inputPath = Path.Combine(RoleEnvironment.GetLocalResource("input").RootPath, Guid.NewGuid().ToString());
+
+                Directory.CreateDirectory(outputPath);
+                Directory.CreateDirectory(inputPath);
+
+                // Get the message
                 SlicingOptions slicingOptions = JsonConvert.DeserializeObject<SlicingOptions>(messageContents);
 
                 slicingOptions.Obj = Path.Combine(inputPath, slicingOptions.Obj);
@@ -93,7 +96,7 @@ namespace PyriteCloudRole
                 var vertexCounts = manager.GenerateCubesForTextureTile(outputPath, slicingOptions.TextureTile, slicingOptions);
 
                 StorageUtilities.InsertWorkCompleteMetadata(TableClient,
-                    new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y, DateTime.UtcNow)
+                    new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y, DateTime.UtcNow)
                     {
                         MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts)
                     });
@@ -127,12 +130,12 @@ namespace PyriteCloudRole
         {
             int expectedResults = options.TextureSliceX * options.TextureSliceY;
             
-            if (StorageUtilities.GetWorkCompletedCount(TableClient, options.CloudResultPath) != expectedResults)
+            if (StorageUtilities.GetWorkCompletedCount(TableClient, options.CloudResultPath, options.CloudResultContainer) != expectedResults)
             {
                 return;
             }
 
-            var workResults = StorageUtilities.GetWorkCompletedMetadata(TableClient, options.CloudResultPath);
+            var workResults = StorageUtilities.GetWorkCompletedMetadata(TableClient, options.CloudResultPath, options.CloudResultContainer);
 
             // Write metadata
 
@@ -188,6 +191,16 @@ namespace PyriteCloudRole
                     slicingOptions.CloudResultContainer);
 
                 File.Delete(file);
+            }
+
+            try
+            {
+                File.Delete(slicingOptions.Obj);
+                File.Delete(slicingOptions.Texture);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Failure cleaning up source data. " + ex.ToString());
             }
         }
 

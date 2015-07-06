@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Table;
 using PyriteCliCommon.Models;
@@ -52,23 +53,23 @@ namespace PyriteCliCommon
             table.Execute(insertOperation);
         }
 
-        public static int GetWorkCompletedCount(CloudTableClient client, string resultPath)
+        public static int GetWorkCompletedCount(CloudTableClient client, string resultPath, string container)
         {
             CloudTable table = client.GetTableReference("work");
 
             var tiles = from result in table.CreateQuery<WorkEntity>()
-                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath)
+                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath, container)
                         select result.RowKey;
 
             return tiles.ToList().Count();
         }
 
-        public static IEnumerable<WorkEntity> GetWorkCompletedMetadata(CloudTableClient client, string resultPath)
+        public static IEnumerable<WorkEntity> GetWorkCompletedMetadata(CloudTableClient client, string resultPath, string container)
         {
             CloudTable table = client.GetTableReference("work");
 
             var tiles = from result in table.CreateQuery<WorkEntity>()
-                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath)
+                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath, container)
                         select result;
 
             return tiles;
