@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using PyriteLib;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.ServiceRuntime;
@@ -15,7 +12,6 @@ using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using PyriteCliCommon;
 using PyriteCliCommon.Models;
-using PyriteLib;
 
 namespace PyriteCloudRole
 {
