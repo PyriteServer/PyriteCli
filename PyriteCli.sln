@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.22823.1
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FF7E6DAB-7D1B-49DF-9AE2-1C0F8CE0AF1D}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCli", "PyriteCli\PyriteCli.csproj", "{558DDB06-CD0D-4346-96AA-4B5BEE498F04}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteLib", "PyriteLib\PyriteLib.csproj", "{C0BD104E-2930-432C-832E-F7CB38CCBE05}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FF7E6DAB-7D1B-49DF-9AE2-1C0F8CE0AF1D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCli.Tests", "PyriteCli.Tests\PyriteCli.Tests.csproj", "{F8C1E3D7-84BD-4465-B897-4BF4CA3BD6C3}"
 EndProject
