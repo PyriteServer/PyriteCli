@@ -103,6 +103,7 @@ namespace PyriteCloudRole
                 CheckForComplete(slicingOptions, manager);
 
                 // ** Cleanup
+                slicingOptions?.TextureInstance?.Dispose();
                 Trace.TraceInformation("Writing Results");
                 UploadResultData(slicingOptions);
 

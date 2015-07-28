@@ -6,19 +6,18 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using PyriteLib.Types;
 
 namespace PyriteLib
 {
-	public class Texture
+    public class Texture : IDisposable
 	{
         public Obj TargetObj { get; set; }
 
         private Image source;
-        private Object sourceLock = new Object();
+        private object sourceLock = new object();
+        private bool disposed = false;
 
         public Texture(Obj obj)
 		{
@@ -29,6 +28,29 @@ namespace PyriteLib
         {
             TargetObj = obj;
             source = Image.FromFile(texturePath);
+        }
+
+        ~Texture()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    source?.Dispose();
+                }
+            }
+            disposed = true;
         }
 
         // Generates a copy of the provided texture and

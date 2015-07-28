@@ -6,6 +6,7 @@ using PyriteLib.Types;
 using System.Linq;
 using System.Drawing;
 using System.Diagnostics;
+using System.Threading;
 
 namespace PyriteLib.Tests
 {
@@ -51,7 +52,7 @@ namespace PyriteCli.Tests
 
 			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
 			PrivateType texture = new PrivateType(typeof(Texture));
-			var result = (IEnumerable<IEnumerable<Face>>)texture.InvokeStatic("FindConnectedFaces", new Object[] { faces });
+			var result = (IEnumerable<IEnumerable<Face>>)texture.InvokeStatic("FindConnectedFaces", new Object[] { faces, new CancellationToken() });
 
 			Assert.AreEqual(3, result.Count());
 			Assert.AreEqual(7, result.Sum(g => g.Count()));
@@ -73,7 +74,7 @@ namespace PyriteCli.Tests
             Stopwatch watch = Stopwatch.StartNew();
 			for (int i = 0; i < 10; i++)
 			{
-				var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces });
+				var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces, new CancellationToken() });
 			}
 			Console.WriteLine("Connected Faces Milliseconds: " + watch.ElapsedMilliseconds);			
 		}
@@ -91,7 +92,7 @@ namespace PyriteCli.Tests
             // private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
             List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
 
-			var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces });
+			var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces, new CancellationToken() });
 
 			RectangleF[] rectangles = (RectangleF[])textureObject.Invoke("FindUVRectangles", new Object[] { result });
 
@@ -107,7 +108,21 @@ namespace PyriteCli.Tests
 
 		}
 
-		private Texture GetTestTexture()
+        [TestMethod]
+        [ExpectedException(typeof(System.OperationCanceledException))]
+        public void FindConnectedFacesCancelled()
+        {
+            PrivateType textureType = new PrivateType(typeof(Texture));
+
+            var texture = GetTestTexture();
+            PrivateObject textureObject = new PrivateObject(texture);
+                                                                                                                
+            List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
+
+            var result = (IEnumerable<IEnumerable<Face>>)textureType.InvokeStatic("FindConnectedFaces", new Object[] { faces, new CancellationToken(true) });
+        }
+
+        private Texture GetTestTexture()
 		{
 			var options = new SlicingOptions
 			{				
