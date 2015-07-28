@@ -7,6 +7,8 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using PyriteLib.Types;
 
 namespace PyriteLib
@@ -82,7 +84,7 @@ namespace PyriteLib
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
-		public RectangleTransform[] GenerateTextureTile(string outputPath, Vector2 tile, SlicingOptions options)
+		public RectangleTransform[] GenerateTextureTile(string outputPath, Vector2 tile, SlicingOptions options, CancellationToken cancellationToken)
 		{                        
 			List<Face> chunkFaceList = GetFaceListFromTextureTile(options.TextureSliceY, options.TextureSliceX, tile.X, tile.Y, TargetObj).ToList();
             
@@ -100,42 +102,46 @@ namespace PyriteLib
 		    {
                 clonedSource = (Image)source.Clone();
 		    }
+            try
+            {
+                originalSize = clonedSource.Size;
+                Size newSize = new Size();
 
-            originalSize = clonedSource.Size;
-			Size newSize = new Size();
+                Trace.TraceInformation("Generating sparse texture for tile {0}", tile);
 
-            Trace.TraceInformation("Generating sparse texture for tile {0}", tile);
-
-			// Identify blob rectangles
-			var groupedFaces = FindConnectedFaces(chunkFaceList);
-			var uvRects = FindUVRectangles(groupedFaces);
-			Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, originalSize, 3);
+                // Identify blob rectangles
+                var groupedFaces = FindConnectedFaces(chunkFaceList, cancellationToken);
+                var uvRects = FindUVRectangles(groupedFaces);
+                Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, originalSize, 3);
 
 
-            // Bin pack rects, growing to a maximum 16384.
-            // Estimate ideal bin size
-            var totalArea = sourceRects.Sum(r => r.Height * r.Width);
-            var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
-			Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize, 16384);
+                // Bin pack rects, growing to a maximum 16384.
+                // Estimate ideal bin size
+                var totalArea = sourceRects.Sum(r => r.Height * r.Width);
+                var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
+                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize, 16384, cancellationToken);
 
-			// Identify the cropped size of our new texture			
-			newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
-			newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
+                // Identify the cropped size of our new texture			
+                newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
+                newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
 
-			// Round new texture size up to nearest power of 2
-			newSize.Width = NextPowerOfTwo(newSize.Width);
-			newSize.Height = NextPowerOfTwo(newSize.Height);
+                // Round new texture size up to nearest power of 2
+                newSize.Width = NextPowerOfTwo(newSize.Width);
+                newSize.Height = NextPowerOfTwo(newSize.Height);
 
-            // Build the new bin packed and cropped texture
-            WriteNewTexture(outputPath, options.TextureScale, newSize, clonedSource, sourceRects, destinationRects);
+                // Build the new bin packed and cropped texture
+                WriteNewTexture(outputPath, options.TextureScale, newSize, clonedSource, sourceRects, destinationRects, cancellationToken);
 
-			// Generate the UV transform array
-            clonedSource.Dispose();
-			return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
-			
+                // Generate the UV transform array
+                return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
+            }
+            finally
+            {
+                clonedSource.Dispose();
+            }
 		}
         
-        private static void WriteNewTexture(string outputPath, float scale, Size newSize, Image source, Rectangle[] sourceRects, Rectangle[] destinationRects)
+        private static void WriteNewTexture(string outputPath, float scale, Size newSize, Image source, Rectangle[] sourceRects, Rectangle[] destinationRects, CancellationToken cancellationToken)
 		{
 			using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
 			{
@@ -143,6 +149,7 @@ namespace PyriteLib
 				{
 					for (int i = 0; i < sourceRects.Length; i++)
 					{
+                        cancellationToken.ThrowIfCancellationRequested();
 						packedGraphics.DrawImage(source, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
 					}
 				}
@@ -254,7 +261,7 @@ namespace PyriteLib
 			//return rects;
         }
 
-		private static List<List<Face>> FindConnectedFaces(List<Face> faces)
+		private static List<List<Face>> FindConnectedFaces(List<Face> faces, CancellationToken cancellationToken)
 		{
 			var remainingFaces = new List<Face>(faces);
 
@@ -273,7 +280,7 @@ namespace PyriteLib
 				// Intersect and move to group until no more intersections are found.
 				do
 				{
-					matches = remainingFaces.AsParallel().Where(f => FacesIntersect(f, matches)).ToList();
+					matches = remainingFaces.AsParallel().Where(f => FacesIntersect(f, matches)).WithCancellation(cancellationToken).ToList();
 
 					newGroup.AddRange(matches);	
 					foreach (var f in matches)
@@ -336,7 +343,7 @@ namespace PyriteLib
             return new Vector2((int)Math.Floor(cubeX / (double)xRatio), (int)Math.Floor(cubeY / (double)yRatio));
         }
 
-        private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize)
+        private Rectangle[] PackTextures(Rectangle[] source, int width, int height, int maxSize, CancellationToken cancellationToken)
 		{
             Trace.TraceInformation("Bin packing {0} rectangles", source.Length);
             Stopwatch stopwatch = Stopwatch.StartNew();
@@ -347,11 +354,11 @@ namespace PyriteLib
 			Rectangle[] rects = new Rectangle[source.Length];
 
 			for (int i = 0; i < source.Length; i++)
-			{
-				Rectangle rect = bp.Insert(source[i].Width, source[i].Height, MaxRectanglesBinPack.FreeRectangleChoiceHeuristic.RectangleBestAreaFit);
+			{   
+				Rectangle rect = bp.Insert(source[i].Width, source[i].Height, MaxRectanglesBinPack.FreeRectangleChoiceHeuristic.RectangleBestAreaFit, cancellationToken);
 				if (rect.Width == 0 || rect.Height == 0)
 				{
-					return PackTextures(source, width * (width <= height ? 2 : 1), height * (height < width ? 2 : 1), maxSize);
+					return PackTextures(source, width * (width <= height ? 2 : 1), height * (height < width ? 2 : 1), maxSize, cancellationToken);
 				}
 				rects[i] = rect;
 			}

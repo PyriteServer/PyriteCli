@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
@@ -59,7 +60,7 @@ namespace PyriteLib
 			// Generate the data			
 			SpatialUtilities.EnumerateSpaceParallel(metadata.TextureSetSize, (x, y) =>
 			{
-                var vertexCounts = GenerateCubesForTextureTile(outputPath, new Vector2(x, y), options);
+                var vertexCounts = GenerateCubesForTextureTileAsync(outputPath, new Vector2(x, y), options, new CancellationToken()).Result;
 
                 foreach (var cube in vertexCounts.Keys)
                 {
@@ -75,13 +76,15 @@ namespace PyriteLib
 			File.WriteAllText(metadataPath, metadataString);
         }
 
-        public Dictionary<Vector3, int> GenerateCubesForTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
+        public async Task<Dictionary<Vector3, int>> GenerateCubesForTextureTileAsync(string outputPath, Vector2 textureTile, SlicingOptions options, CancellationToken cancellationToken)
         {          
             // If appropriate, generate textures and save transforms first
             if (options.Texture != null)
             {
-                ProcessTextureTile(Path.Combine(outputPath, TextureSubDirectory), textureTile, options);               
+                await Task.Run(() => ProcessTextureTile(Path.Combine(outputPath, TextureSubDirectory), textureTile, options, cancellationToken), cancellationToken);               
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             Dictionary<Vector3, int> vertexCounts = new Dictionary<Vector3, int>();
            
@@ -89,6 +92,7 @@ namespace PyriteLib
             var cubes = Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, textureTile.X, textureTile.Y, ObjInstance).ToList();
             cubes.ForEach(v =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 Trace.TraceInformation("Processing cube {0}", v);
                 string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", v.X, v.Y, v.Z));
                 int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, v, options);
@@ -98,14 +102,14 @@ namespace PyriteLib
             return vertexCounts;
         }
 
-		public void ProcessTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options)
+		public void ProcessTextureTile(string outputPath, Vector2 textureTile, SlicingOptions options, CancellationToken cancellationToken)
 		{
             Trace.TraceInformation("Processing texture tile {0}", textureTile);
 
 		    string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}.jpg", textureTile.X, textureTile.Y));
 
             // Generate new texture
-			var transform = options.TextureInstance.GenerateTextureTile(fileOutPath, textureTile, options);
+			var transform = options.TextureInstance.GenerateTextureTile(fileOutPath, textureTile, options, cancellationToken);
 
             // Transform associated UV's
             ObjInstance.TransformUVsForTextureTile(options, textureTile, transform);      

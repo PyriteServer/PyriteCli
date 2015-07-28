@@ -21,12 +21,18 @@ namespace PyriteCloudRole
         {
             Trace.TraceInformation("PyriteCloudRole is running");
 
-            Scanner scanner = new Scanner();
-            
-            while(true)
+            try
             {
-                scanner.DoWork();
-                Thread.Sleep(10000);
+                this.RunAsync(this.cancellationTokenSource.Token).Wait();
+            }
+            catch(Exception ex)
+            {
+                Trace.TraceError("Exception hit: " + ex.ToString());
+                throw;                 
+            }
+            finally
+            {
+                this.runCompleteEvent.Set();
             }
         }
 
@@ -59,10 +65,10 @@ namespace PyriteCloudRole
 
         private async Task RunAsync(CancellationToken cancellationToken)
         {
-            // TODO: Replace the following with your own logic.
+            Scanner scanner = new Scanner();
             while (!cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceInformation("Working");
+                await scanner.DoWorkAsync(cancellationToken);
                 await Task.Delay(1000);
             }
         }

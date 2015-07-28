@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -25,6 +26,12 @@ namespace PyriteCliCommon
         {
             var blob = client.GetBlobReferenceFromServer(new Uri(remotePath));
             blob.DownloadToFile(localPath, FileMode.CreateNew);
+        }
+
+        public static async Task DownloadBlobAsync(CloudBlobClient client, string localPath, string remotePath, CancellationToken cancellationToken)
+        {
+            var blob = await client.GetBlobReferenceFromServerAsync(new Uri(remotePath), cancellationToken);
+            await blob.DownloadToFileAsync(localPath, FileMode.CreateNew, cancellationToken);
         }
 
         public static void InsertSetMetadata(CloudTableClient client, SetEntity set)

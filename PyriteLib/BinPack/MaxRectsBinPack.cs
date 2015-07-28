@@ -10,6 +10,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Threading;
 using System.Threading.Tasks;
 
 public class MaxRectanglesBinPack
@@ -54,7 +55,7 @@ public class MaxRectanglesBinPack
 		freeRectangles.Add(n);
 	}
 
-	public Rectangle Insert(int width, int height, FreeRectangleChoiceHeuristic method)
+	public Rectangle Insert(int width, int height, FreeRectangleChoiceHeuristic method, CancellationToken cancellationToken)
 	{
 		Rectangle newNode = new Rectangle();
 		int score1 = 0;	// Unused in this function. We don't need to know the score after finding the position.
@@ -82,7 +83,7 @@ public class MaxRectanglesBinPack
 			}
 		}
 
-		PruneFreeList();
+		PruneFreeList(cancellationToken);
 
 		usedRectangles.Add(newNode);
 		return newNode;
@@ -101,7 +102,7 @@ public class MaxRectanglesBinPack
 			}
 		}
 
-		PruneFreeList();
+		PruneFreeList(new CancellationToken());
 
 		usedRectangles.Add(node);
 	}
@@ -445,11 +446,11 @@ public class MaxRectanglesBinPack
 		return true;
 	}
 
-	void PruneFreeList()
+	void PruneFreeList(CancellationToken cancellationToken)
 	{   
         SortedSet<int> rectanglesToRemove = new SortedSet<int>();
 
-	    Parallel.For(0, freeRectangles.Count, i =>
+	    Parallel.For(0,freeRectangles.Count, new ParallelOptions() { CancellationToken = cancellationToken }, i =>
 	    {
 	        for (int j = i + 1; j < freeRectangles.Count; ++j)
 	        {

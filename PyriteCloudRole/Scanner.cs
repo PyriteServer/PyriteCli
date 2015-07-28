@@ -2,7 +2,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using PyriteLib;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
@@ -12,6 +13,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
 using PyriteCliCommon;
 using PyriteCliCommon.Models;
+using PyriteLib;
 
 namespace PyriteCloudRole
 {
@@ -43,14 +45,14 @@ namespace PyriteCloudRole
             WorkQueue.CreateIfNotExists();
         }
 
-        public void DoWork()
+        public async Task DoWorkAsync(CancellationToken cancellationToken)
         {
             CloudQueueMessage retrievedMessage;
 
             try
             {
                 // Get the next message
-                retrievedMessage = WorkQueue.GetMessage(TimeSpan.FromHours(5));
+                retrievedMessage = await WorkQueue.GetMessageAsync(TimeSpan.FromHours(5), null, null, cancellationToken);
 
                 if (retrievedMessage == null) return;
             }
@@ -78,7 +80,7 @@ namespace PyriteCloudRole
 
                 // ** Prep
                 Trace.TraceInformation("Syncing data");
-                VerifySourceData(slicingOptions);
+                await VerifySourceDataAsync(slicingOptions, cancellationToken);
 
                 // ** Run
                 Trace.TraceInformation("Starting Processing");
@@ -89,7 +91,7 @@ namespace PyriteCloudRole
                     slicingOptions.TextureInstance = new Texture(manager.ObjInstance, slicingOptions.Texture);
                 }	
                 	
-                var vertexCounts = manager.GenerateCubesForTextureTile(outputPath, slicingOptions.TextureTile, slicingOptions);
+                var vertexCounts = await manager.GenerateCubesForTextureTileAsync(outputPath, slicingOptions.TextureTile, slicingOptions, cancellationToken);
 
                 StorageUtilities.InsertWorkCompleteMetadata(TableClient,
                     new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y, DateTime.UtcNow)
@@ -118,6 +120,17 @@ namespace PyriteCloudRole
                 else
                 {
                     WorkQueue.UpdateMessage(retrievedMessage, TimeSpan.FromSeconds(10), MessageUpdateFields.Visibility);
+                }
+            }
+            finally
+            {
+                if(Directory.Exists(outputPath))
+                {
+                    Directory.Delete(outputPath, true);
+                }
+                if(Directory.Exists(inputPath))
+                {
+                    Directory.Delete(inputPath, true);
                 }
             }
         }
@@ -200,19 +213,17 @@ namespace PyriteCloudRole
             }
         }
 
-        private void VerifySourceData(SlicingOptions slicingOptions)
+        private async Task VerifySourceDataAsync(SlicingOptions slicingOptions, CancellationToken cancellationToken)
         {
             if (!File.Exists(slicingOptions.Obj))
             {
-                StorageUtilities.DownloadBlob(BlobClient, slicingOptions.Obj, slicingOptions.CloudObjPath);
+                await StorageUtilities.DownloadBlobAsync(BlobClient, slicingOptions.Obj, slicingOptions.CloudObjPath, cancellationToken);
             }
 
             if (!File.Exists(slicingOptions.Texture))
             {
-                StorageUtilities.DownloadBlob(BlobClient, slicingOptions.Texture, slicingOptions.CloudTexturePath);
+                await StorageUtilities.DownloadBlobAsync(BlobClient, slicingOptions.Texture, slicingOptions.CloudTexturePath, cancellationToken);
             }
         }
-
-
     }
 }
