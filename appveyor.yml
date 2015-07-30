@@ -6,3 +6,5 @@ before_build:
 - nuget restore
 build:
   verbosity: minimal
+test_script:
+- ps: vstest.console /logger:Appveyor (Get-ChildItem -Recurse -Filter *.tests.dll | % {$_.FullName} | ? { $_ -like "*\bin\*"} ) /Platform:x64
