@@ -9,29 +9,29 @@ using System.Diagnostics;
 
 namespace PyriteCli.Tests
 {
-	[TestClass]
-	[DeploymentItem(@"SampleData\model.obj")]
-	[DeploymentItem(@"SampleData\texture.jpg")]
+    [TestClass]
+    [DeploymentItem(@"SampleData\model.obj")]
+    [DeploymentItem(@"SampleData\texture.jpg")]
     public class FaceTests
-	{
+    {
 
-		[TestMethod]
-		public void FindFacesInExtentPerf()
-		{
-			CubeManager manager = GetLoadedManager();
+        [TestMethod]
+        public void FindFacesInExtentPerf()
+        {
+            CubeManager manager = GetLoadedManager();
 
-			Stopwatch watch = Stopwatch.StartNew();
-			for (int i = 0; i < 100; i++)
-			{
-				List<Face> chunkFaceList;
-				chunkFaceList = manager.ObjInstance.FaceList.AsParallel().Where(
-					v => v.InExtent(manager.ObjInstance.Size, manager.ObjInstance.VertexList)).ToList();
-			}
-			Trace.WriteLine(watch.ElapsedMilliseconds, "Faces In Extent Time (MS): ");			
-		}
+            Stopwatch watch = Stopwatch.StartNew();
+            for (int i = 0; i < 100; i++)
+            {
+                List<Face> chunkFaceList;
+                chunkFaceList = manager.ObjInstance.FaceList.AsParallel().Where(
+                    v => v.InExtent(manager.ObjInstance.Size, manager.ObjInstance.VertexList)).ToList();
+            }
+            Trace.WriteLine(watch.ElapsedMilliseconds, "Faces In Extent Time (MS): ");			
+        }
 
-		private CubeManager GetLoadedManager()
-		{
+        private CubeManager GetLoadedManager()
+        {
             var options = new SlicingOptions
             {
                 GenerateObj = true,
@@ -42,11 +42,11 @@ namespace PyriteCli.Tests
                 ForceCubicalCubes = false,
                 Obj = "model.obj",
                 CubeGrid = new Vector3(2, 2, 2)
-			};
+            };
 
-			CubeManager manager = new CubeManager(options);
+            CubeManager manager = new CubeManager(options);
 
-			return manager;
-		}
-	}
+            return manager;
+        }
+    }
 }

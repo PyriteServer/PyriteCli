@@ -84,7 +84,7 @@ namespace PyriteCli
                     }
                     else
                     {
-                        Console.WriteLine("Cuber only accepts .jpg and .obj files for input.");
+                        Console.WriteLine("PyriteCli only accepts .jpg and .obj files for input.");
                     }
                 }
             }
@@ -94,7 +94,7 @@ namespace PyriteCli
             }
             catch (ParseException)
             {
-                Console.WriteLine("usage: Cuber --help");
+                Console.WriteLine("usage: PyriteCli --help");
             }
 
             stopwatch.Stop();

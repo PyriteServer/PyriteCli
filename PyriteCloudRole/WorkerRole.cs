@@ -68,8 +68,8 @@ namespace PyriteCloudRole
             Scanner scanner = new Scanner();
             while (!cancellationToken.IsCancellationRequested)
             {
-                await scanner.DoWorkAsync(cancellationToken);
-                await Task.Delay(1000);
+                await scanner.DoWorkAsync(cancellationToken).ConfigureAwait(false);
+                await Task.Delay(1000).ConfigureAwait(false);
             }
         }
     }

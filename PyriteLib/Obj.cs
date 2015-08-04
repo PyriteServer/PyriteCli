@@ -15,26 +15,26 @@ namespace PyriteLib
 
         public List<Vertex> VertexList;
         public List<Face> FaceList;
-		public List<Face>[,,] FaceMatrix;
+        public List<Face>[,,] FaceMatrix;
         public List<TextureVertex> TextureList;
 
         public Extent Size { get; set; }
-		public Extent CubicalSize { get; set; }
+        public Extent CubicalSize { get; set; }
 
-		private string _mtl;
-		private bool _verticesRequireReset;
+        private string _mtl;
+        private bool _verticesRequireReset;
 
-		/// <summary>
-		/// Parse and load an OBJ file into memory.  Will consume memory
-		/// at aproximately 120% the size of the file.
-		/// </summary>
-		/// <param name="path">path to obj file on disk</param>
-		/// <param name="linesProcessedCallback">callback for status updates</param>
+        /// <summary>
+        /// Parse and load an OBJ file into memory.  Will consume memory
+        /// at aproximately 120% the size of the file.
+        /// </summary>
+        /// <param name="path">path to obj file on disk</param>
+        /// <param name="linesProcessedCallback">callback for status updates</param>
         public void LoadObj(string path, Action<int> linesProcessedCallback, Vector3 gridSize, SlicingOptions options)
         {
             VertexList = new List<Vertex>();
             FaceList = new List<Face>();
-			FaceMatrix = new List<Face>[gridSize.X, gridSize.Y, gridSize.Z];
+            FaceMatrix = new List<Face>[gridSize.X, gridSize.Y, gridSize.Z];
             TextureList = new List<TextureVertex>();
 
             var input = File.ReadLines(path);
@@ -56,32 +56,32 @@ namespace PyriteLib
 
             updateSize();
 
-			populateMatrix(FaceList, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size);
+            populateMatrix(FaceList, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size);
 
-			_verticesRequireReset = false;                    
+            _verticesRequireReset = false;                    
         }
 
-		private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size)
-		{
-			Trace.TraceInformation("Partitioning Faces.");
+        private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size)
+        {
+            Trace.TraceInformation("Partitioning Faces.");
 
-			int xLength = matrix.GetLength(0);
-			int yLength = matrix.GetLength(1);
-			int zLength = matrix.GetLength(2);
+            int xLength = matrix.GetLength(0);
+            int yLength = matrix.GetLength(1);
+            int zLength = matrix.GetLength(2);
 
-			// World to cube ratios
-			double xOffset = 0 - size.XMin;
-			double xRatio = xLength / (size.XSize);
+            // World to cube ratios
+            double xOffset = 0 - size.XMin;
+            double xRatio = xLength / (size.XSize);
 
-			double yOffset = 0 - size.YMin;
-			double yRatio = yLength / (size.YSize);
+            double yOffset = 0 - size.YMin;
+            double yRatio = yLength / (size.YSize);
 
-			double zOffset = 0 - size.ZMin;
-			double zRatio = zLength / (size.ZSize);
+            double zOffset = 0 - size.ZMin;
+            double zRatio = zLength / (size.ZSize);
 
-			// Initialize matrix
-			SpatialUtilities.EnumerateSpace(xLength, yLength, zLength, 
-				(x, y, z) => matrix[x, y, z] = new List<Face>());
+            // Initialize matrix
+            SpatialUtilities.EnumerateSpace(xLength, yLength, zLength, 
+                (x, y, z) => matrix[x, y, z] = new List<Face>());
 
             foreach (var face in faces)
             {
@@ -144,47 +144,43 @@ namespace PyriteLib
                 this);
 
             var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct();
-			var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
+            var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
             foreach (var uv in uvs)
-			{
+            {
                 var transforms = uvTransforms.Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
 
-				if (transforms.Any())
-				{
-					RectangleTransform transform = transforms.First();
-				    lock (uv)
-				    {
-				        if (uv.Transformed)
-				        {
-				            // This was already transformed in another extent, so we'll have to copy it
-				            int newIndex = uv.CloneOriginal(TextureList);
-				            TextureList[newIndex - 1].Transform(transform);
+                if (transforms.Any())
+                {
+                    RectangleTransform transform = transforms.First();
+                    lock (uv)
+                    {
+                        if (uv.Transformed)
+                        {
+                            // This was already transformed in another extent, so we'll have to copy it
+                            int newIndex = uv.CloneOriginal(TextureList);
+                            TextureList[newIndex - 1].Transform(transform);
 
-				            // Update all faces using the old UV in this extent
-				            var FacesToUpdate = faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index));
-				            foreach (var face in FacesToUpdate)
-				            {
-				                face.UpdateTextureVertexIndex(uv.Index, newIndex, false);
-				            }
+                            // Update all faces using the old UV in this extent
+                            faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index)).ForAll(face => face.UpdateTextureVertexIndex(uv.Index, newIndex, false));
 
-				            newUVCount++;
-				        }
-				        else
-				        {
-				            uv.Transform(transform);     
-				            transformUVCount++;
-				        }
-				    }
-				}
-				else
-				{
+                            newUVCount++;
+                        }
+                        else
+                        {
+                            uv.Transform(transform);     
+                            transformUVCount++;
+                        }
+                    }
+                }
+                else
+                {
                     failedUVCount++;
-				}
-			}
+                }
+            }
             
             Trace.TraceInformation("UV Transform results ({3},{4}): {0} success, {1} new, {2} failed.", transformUVCount, newUVCount, failedUVCount, textureTile.X, textureTile.Y);
 
-			// Write out a marked up image file showing where lost UV's occured
+            // Write out a marked up image file showing where lost UV's occured
             if (options.Debug)
             {
                 var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
@@ -192,7 +188,7 @@ namespace PyriteLib
                 if (relevantTransforms.Any() && notTransformedUVs.Any())
                     options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs);
             }
-		}
+        }
 
         /// <summary>
         /// Write a single "cube".
@@ -206,51 +202,51 @@ namespace PyriteLib
         [MethodImpl(MethodImplOptions.Synchronized)]
         public int WriteSpecificCube(string path, Vector3 cube, SlicingOptions options)
         {
-			string objPath = path + ".obj";
-			string eboPath = path + ".ebo";
-		    string openCtmPath = path + ".ctm";
+            string objPath = path + ".obj";
+            string eboPath = path + ".ebo";
+            string openCtmPath = path + ".ctm";
 
-			// Delete files or handle resume if the required ones already exist
-			CleanOldFiles(options, objPath, eboPath, openCtmPath);
+            // Delete files or handle resume if the required ones already exist
+            CleanOldFiles(options, objPath, eboPath, openCtmPath);
 
 
-			// Revert all vertices in case we previously changed their indexes
-			if (_verticesRequireReset)
-			{
-				FaceList.AsParallel().ForAll(f => f.RevertVertices());
-				_verticesRequireReset = false;
-			}
+            // Revert all vertices in case we previously changed their indexes
+            if (_verticesRequireReset)
+            {
+                FaceList.AsParallel().ForAll(f => f.RevertVertices());
+                _verticesRequireReset = false;
+            }
 
-			// Get all faces in this cube
-			List<Face> chunkFaceList;
-			chunkFaceList = FaceMatrix[cube.X, cube.Y, cube.Z];
+            // Get all faces in this cube
+            List<Face> chunkFaceList;
+            chunkFaceList = FaceMatrix[cube.X, cube.Y, cube.Z];
 
-			if (!chunkFaceList.Any())
-				return 0;            
+            if (!chunkFaceList.Any())
+                return 0;            
 
-			Trace.TraceInformation("{0} faces", chunkFaceList.Count);
+            Trace.TraceInformation("{0} faces", chunkFaceList.Count);
 
-			if (options.GenerateEbo)
-			{
-				WriteEboFormattedFile(eboPath, options.OverrideMtl, chunkFaceList);
-			}
+            if (options.GenerateEbo)
+            {
+                WriteEboFormattedFile(eboPath, options.OverrideMtl, chunkFaceList);
+            }
 
             var tile = Texture.GetTextureCoordFromCube(options.TextureSliceY, options.TextureSliceX, cube.X, cube.Y, this);
 
-			if (options.GenerateObj)
-			{
+            if (options.GenerateObj)
+            {
                 string comment = string.Format("Texture Tile {0},{1}", tile.X, tile.Y);
                 WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList, comment);
                 chunkFaceList.AsParallel().ForAll(f => f.RevertVertices());
-			}
+            }
 
-		    if (options.GenerateOpenCtm)
-		    {
+            if (options.GenerateOpenCtm)
+            {
                 WriteOpenCtmFormattedFile(openCtmPath, chunkFaceList, tile);
-		    }
+            }
             
-			return chunkFaceList.Count;
-		}
+            return chunkFaceList.Count;
+        }
 
         private void CropCube(List<Face> chunkFaceList, int cubeX, int cubeY, int cubeZ, List<Face>[,,] matrix, Extent size)
         {
@@ -459,43 +455,43 @@ namespace PyriteLib
         }
 
         private static void CleanOldFiles(SlicingOptions options, string objPath, string eboPath, string ctmPath)
-		{
-			if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(objPath))) { Directory.CreateDirectory(Path.GetDirectoryName(objPath)); }
 
-			if (options.GenerateObj)
-			{
-				File.Delete(objPath);
-			}
+            if (options.GenerateObj)
+            {
+                File.Delete(objPath);
+            }
 
-			if (options.GenerateEbo)
-			{
-				File.Delete(eboPath);
+            if (options.GenerateEbo)
+            {
+                File.Delete(eboPath);
                 File.Delete(GetEbo2Path(eboPath));
-			}
+            }
 
             if (options.GenerateOpenCtm)
             {
                 File.Delete(ctmPath);
             }
-		}
+        }
 
-		private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, string comment = "")
+        private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, string comment = "")
         {
-			// Build a list of vertices indexes needed for these faces
-			List<int> requiredVertices = null;
-			List<int> requiredTextureVertices = null;
+            // Build a list of vertices indexes needed for these faces
+            List<int> requiredVertices = null;
+            List<int> requiredTextureVertices = null;
 
-			var tv = Task.Run(() => { requiredVertices = chunkFaceList.AsParallel().SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
-			var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
+            var tv = Task.Run(() => { requiredVertices = chunkFaceList.AsParallel().SelectMany(f => f.VertexIndexList).Distinct().ToList(); });
+            var ttv = Task.Run(() => { requiredTextureVertices = chunkFaceList.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct().ToList(); });
 
-			Task.WaitAll(new Task[] { tv, ttv });			
+            Task.WaitAll(new Task[] { tv, ttv });			
 
-			using (var outStream = File.OpenWrite(path))
+            using (var outStream = File.OpenWrite(path))
             using (var writer = new StreamWriter(outStream))
             {
 
                 // Write some header data
-                writer.WriteLine("# Generated by Cuber");
+                writer.WriteLine("# Generated by PyriteCli");
                 if (!string.IsNullOrEmpty(comment))
                 {
                     writer.WriteLine("# " + comment);
@@ -510,8 +506,8 @@ namespace PyriteLib
                     writer.WriteLine("mtllib " + _mtl);
                 }
 
-				// Write each vertex and update faces		
-				_verticesRequireReset = true;		
+                // Write each vertex and update faces		
+                _verticesRequireReset = true;		
                 int newVertexIndex = 0;
 
                 Parallel.ForEach(requiredVertices, i =>
@@ -550,87 +546,87 @@ namespace PyriteLib
             {
                 uint oldVoldUVCount = 0, oldVnewUVCount = 0, newVandUVCount = 0;
 
-				for (int fi = 0; fi < chunkFaceList.Count; fi++)
-				{
-					// Hardcode for triangles in this format, since that is what the client supports
-					for (int i = 0; i < 3; i++)
-					{
-						// Have we written this vertex before? If so write a pointer to its index
-						int desiredVertexIndex = chunkFaceList[fi].VertexIndexList[i];
-						int desiredTextureIndex = chunkFaceList[fi].TextureVertexIndexList[i];
-						var preexisting = chunkFaceList.Take(fi).AsParallel().Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
+                for (int fi = 0; fi < chunkFaceList.Count; fi++)
+                {
+                    // Hardcode for triangles in this format, since that is what the client supports
+                    for (int i = 0; i < 3; i++)
+                    {
+                        // Have we written this vertex before? If so write a pointer to its index
+                        int desiredVertexIndex = chunkFaceList[fi].VertexIndexList[i];
+                        int desiredTextureIndex = chunkFaceList[fi].TextureVertexIndexList[i];
+                        var preexisting = chunkFaceList.Take(fi).AsParallel().Where(f => f.VertexIndexList.Contains(desiredVertexIndex));
 
-						if (preexisting.Any())
-						{
+                        if (preexisting.Any())
+                        {
                             // Have we seen this texture vertex before?
-							var faceWithMatchingVertexAndUV = preexisting.FirstOrDefault(f =>
-							{
-							    for (int ti = 0; ti < 3; ti++)
-							    {
+                            var faceWithMatchingVertexAndUV = preexisting.FirstOrDefault(f =>
+                            {
+                                for (int ti = 0; ti < 3; ti++)
+                                {
                                     if (f.VertexIndexList[ti] == desiredVertexIndex && f.TextureVertexIndexList[ti] == desiredTextureIndex)
                                     {
-							            return true;
-							        }
-							    }
-							    return false;
-							});
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            });
 
                             if (faceWithMatchingVertexAndUV != null)
-							{
-								// The total number of vertices prior to matching face
+                            {
+                                // The total number of vertices prior to matching face
                                 int index = (chunkFaceList.IndexOf(faceWithMatchingVertexAndUV)) * 3;
-							    int indexInFace = Enumerable.Range(0, 3).First((innerIndex) =>
-							         chunkFaceList[index/3].VertexIndexList[innerIndex] == desiredVertexIndex &&
-							         chunkFaceList[index/3].TextureVertexIndexList[innerIndex] == desiredTextureIndex
-							    );
-								// Now add the delta to index into this triangle correctly
-								index += indexInFace;
+                                int indexInFace = Enumerable.Range(0, 3).First((innerIndex) =>
+                                     chunkFaceList[index/3].VertexIndexList[innerIndex] == desiredVertexIndex &&
+                                     chunkFaceList[index/3].TextureVertexIndexList[innerIndex] == desiredTextureIndex
+                                );
+                                // Now add the delta to index into this triangle correctly
+                                index += indexInFace;
 
-								// write the back reference instead of the vertex
-								writer.Write((byte)0);
-								writer.Write((UInt32)index);
+                                // write the back reference instead of the vertex
+                                writer.Write((byte)0);
+                                writer.Write((UInt32)index);
 
-							    oldVoldUVCount++;
+                                oldVoldUVCount++;
 
-							}
-							else
-							{
-								var face = preexisting.First();
+                            }
+                            else
+                            {
+                                var face = preexisting.First();
 
-								// The total number of vertices prior to this face
-								int index = (chunkFaceList.IndexOf(face)) * 3;
+                                // The total number of vertices prior to this face
+                                int index = (chunkFaceList.IndexOf(face)) * 3;
 
-								// Now add the delta to index into this triangle correctly
-								int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
-								index += indexInFace;
+                                // Now add the delta to index into this triangle correctly
+                                int indexInFace = face.VertexIndexList.ToList().IndexOf(desiredVertexIndex);
+                                index += indexInFace;
 
-								// write the back reference instead of the vertex
-								writer.Write((byte)64);
-								writer.Write((UInt32)index);
+                                // write the back reference instead of the vertex
+                                writer.Write((byte)64);
+                                writer.Write((UInt32)index);
 
                                 writer.Write((float)TextureList[desiredTextureIndex - 1].X);
                                 writer.Write((float)TextureList[desiredTextureIndex - 1].Y);
 
-							    oldVnewUVCount++;
+                                oldVnewUVCount++;
 
-							}
-						}
-						else
-						{
-							writer.Write((byte)255);
-							writer.Write((float)VertexList[desiredVertexIndex - 1].X);
-							writer.Write((float)VertexList[desiredVertexIndex - 1].Y);
-							writer.Write((float)VertexList[desiredVertexIndex - 1].Z);
+                            }
+                        }
+                        else
+                        {
+                            writer.Write((byte)255);
+                            writer.Write((float)VertexList[desiredVertexIndex - 1].X);
+                            writer.Write((float)VertexList[desiredVertexIndex - 1].Y);
+                            writer.Write((float)VertexList[desiredVertexIndex - 1].Z);
 
                             writer.Write((float)TextureList[desiredTextureIndex - 1].X);
                             writer.Write((float)TextureList[desiredTextureIndex - 1].Y);
 
-						    newVandUVCount++;
-						}
-					}
-				}
+                            newVandUVCount++;
+                        }
+                    }
+                }
 
-				writer.Write((byte)128);
+                writer.Write((byte)128);
 
                 using (var eboFileStream = File.OpenWrite(path))
                 using (var eboWriter = new BinaryWriter(eboFileStream))
@@ -754,23 +750,23 @@ namespace PyriteLib
             return eboPath + "2";
         }
 
-		/// <summary>
-		/// Helper to make determining the index of the written vertex
-		/// and the stream output thread safe.  
-		/// We block on writing the line, and incrementing the index.
-		/// Has no real performance impact as most of the time is spent traversing arrays.
-		/// </summary>
-		[MethodImpl(MethodImplOptions.Synchronized)]
-		private int WriteVertexWithNewIndex<T>(T item, ref int index, StreamWriter writer)
+        /// <summary>
+        /// Helper to make determining the index of the written vertex
+        /// and the stream output thread safe.  
+        /// We block on writing the line, and incrementing the index.
+        /// Has no real performance impact as most of the time is spent traversing arrays.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        private int WriteVertexWithNewIndex<T>(T item, ref int index, StreamWriter writer)
         {
-			writer.WriteLine(item);
-			index++;
-			return index;
+            writer.WriteLine(item);
+            index++;
+            return index;
         }
 
-		/// <summary>
-		/// Sets our global object size with an extent object
-		/// </summary>
+        /// <summary>
+        /// Sets our global object size with an extent object
+        /// </summary>
         private void updateSize()
         {
             Size = new Extent
@@ -785,21 +781,21 @@ namespace PyriteLib
 
             double sideLength = Math.Ceiling(Math.Max(Math.Max(Size.XSize, Size.YSize), Size.ZSize));
 
-			CubicalSize = new Extent
-			{
-				XMin = Size.XMin,
-				YMin = Size.YMin,
-				ZMin = Size.ZMin,
-				XMax = Size.XMin + sideLength,
-				YMax = Size.YMin + sideLength,
-				ZMax = Size.ZMin + sideLength
-			};
+            CubicalSize = new Extent
+            {
+                XMin = Size.XMin,
+                YMin = Size.YMin,
+                ZMin = Size.ZMin,
+                XMax = Size.XMin + sideLength,
+                YMax = Size.YMin + sideLength,
+                ZMax = Size.ZMin + sideLength
+            };
         }
 
-		/// <summary>
-		/// Parses and loads a line from an OBJ file.
-		/// Currently only supports V, VT, F and MTLLIB prefixes
-		/// </summary>		
+        /// <summary>
+        /// Parses and loads a line from an OBJ file.
+        /// Currently only supports V, VT, F and MTLLIB prefixes
+        /// </summary>		
         private void processLine(string line)
         {
             string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);

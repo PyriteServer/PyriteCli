@@ -183,3 +183,6 @@ FakesAssemblies/
 
 # Performance analysis files
 *.diagsession
+
+# Visual Studio 2015 cache/options directory
+.vs/

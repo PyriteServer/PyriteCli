@@ -7,7 +7,7 @@ using clipr;
 
 namespace PyriteCliCommon
 {
-    [ApplicationInfo(Description = "Cuber Options")]
+    [ApplicationInfo(Description = "PyriteCli Options")]
     public class Options
     {
         [NamedArgument('x', "xsize", Action = ParseAction.Store,
@@ -31,7 +31,7 @@ namespace PyriteCliCommon
         public int TextureYSize { get; set; }
 
         [NamedArgument('s', "scaletexture", Action = ParseAction.Store,
-            Description = "A number between 0 and 1 telling Cuber how to resize/scale the texture when using -t.  Default 1.")]
+            Description = "A number between 0 and 1 telling PyriteCli how to resize/scale the texture when using -t.  Default 1.")]
         public float ScaleTexture { get; set; }
 
         [NamedArgument('m', "mtl", Action = ParseAction.Store,

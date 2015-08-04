@@ -81,5 +81,18 @@ namespace PyriteCliCommon
 
             return tiles;
         }
+
+        public static void UpdateSetCompleted(CloudTableClient client, string setRowKey)
+        {
+            var setPartiionKey = SetEntity.DefaultPartitionKey;
+            CloudTable table = client.GetTableReference("sets");
+
+            var entry = new DynamicTableEntity(setPartiionKey, setRowKey, "*", new Dictionary<string, EntityProperty>());
+            entry.Properties["CompletedOn"] = new EntityProperty(DateTime.UtcNow);
+            entry.Properties["Completed"] = new EntityProperty(true);
+            var mergeOperation = TableOperation.Merge(entry);
+
+            table.Execute(mergeOperation);
+        }
     }
 }

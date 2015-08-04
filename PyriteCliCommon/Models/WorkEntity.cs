@@ -20,7 +20,7 @@ namespace PyriteCliCommon.Models
         }
 
         public WorkEntity() { }
-
+        public DateTime StartTime { get; set; }
         public DateTime CompletedTime { get; set; }
         public int TextureTileX { get; set; }
         public int TextureTileY { get; set; }

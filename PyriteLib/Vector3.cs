@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace PyriteLib
 {
-	public class Vector3
-	{
-		public int X { get; set; }
-		public int Y { get; set; }
-		public int Z { get; set; }
+    public class Vector3
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Z { get; set; }
 
         public Vector3() { }
 

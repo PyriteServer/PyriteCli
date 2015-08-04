@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using clipr;
 using clipr.Core;
 using Microsoft.WindowsAzure.Storage;
@@ -106,13 +107,16 @@ namespace PyriteCli
                 }
 
                 // Queue work
-                StorageUtilities.InsertSetMetadata(TableClient,
-                    new SetEntity("Set", DateTime.UtcNow)
-                    {
-                        ResultPath = options.CloudResultContainer + options.CloudResultPath,
-                        TextureTilesX = setSize.X,
-                        TextureTilesY = setSize.Y
-                    });
+                var setEntity = new SetEntity("Set", DateTime.UtcNow)
+                {
+                    ResultPath = options.CloudResultContainer + options.CloudResultPath,
+                    TextureTilesX = setSize.X,
+                    TextureTilesY = setSize.Y
+                };
+
+                options.SetKey = setEntity.RowKey;
+
+                StorageUtilities.InsertSetMetadata(TableClient, setEntity);
 
                 SpatialUtilities.EnumerateSpace(setSize, (x, y) =>
                 {
@@ -120,7 +124,6 @@ namespace PyriteCli
                     string message = JsonConvert.SerializeObject(options);
                     WorkQueue.AddMessage(new CloudQueueMessage(message));
                 });
-
             }
             catch (ParserExit)
             {
@@ -128,7 +131,7 @@ namespace PyriteCli
             }
             catch (ParseException)
             {
-                Console.WriteLine("usage: Cuber --help");
+                Console.WriteLine("usage: PyriteCli --help");
             }
         }
 

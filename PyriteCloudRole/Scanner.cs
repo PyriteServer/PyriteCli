@@ -48,13 +48,15 @@ namespace PyriteCloudRole
         public async Task DoWorkAsync(CancellationToken cancellationToken)
         {
             CloudQueueMessage retrievedMessage;
-
+            DateTime startTime;
             try
             {
                 // Get the next message
-                retrievedMessage = await WorkQueue.GetMessageAsync(TimeSpan.FromHours(5), null, null, cancellationToken);
+                retrievedMessage = await WorkQueue.GetMessageAsync(TimeSpan.FromHours(5), null, null, cancellationToken).ConfigureAwait(false);
 
                 if (retrievedMessage == null) return;
+
+                startTime = DateTime.UtcNow;
             }
             catch
             {
@@ -89,21 +91,22 @@ namespace PyriteCloudRole
                 if (!string.IsNullOrEmpty(slicingOptions.Texture))
                 {
                     slicingOptions.TextureInstance = new Texture(manager.ObjInstance, slicingOptions.Texture);
-                }	
-                	
-                var vertexCounts = await manager.GenerateCubesForTextureTileAsync(outputPath, slicingOptions.TextureTile, slicingOptions, cancellationToken);
+                }
+
+                var vertexCounts = await manager.GenerateCubesForTextureTileAsync(outputPath, slicingOptions.TextureTile, slicingOptions, cancellationToken).ConfigureAwait(false);
 
                 StorageUtilities.InsertWorkCompleteMetadata(TableClient,
                     new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y, DateTime.UtcNow)
                     {
-                        MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts)
+                        MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts),
+                        StartTime = startTime
                     });
 
                 // ** Check if set is complete
                 CheckForComplete(slicingOptions, manager);
 
                 // ** Cleanup
-                slicingOptions?.TextureInstance?.Dispose();
+                slicingOptions.TextureInstance?.Dispose();
                 Trace.TraceInformation("Writing Results");
                 UploadResultData(slicingOptions);
 
@@ -180,12 +183,14 @@ namespace PyriteCloudRole
             }
         
 
-			// Write out some json metadata
-			string metadataPath = Path.Combine(outputPath, "metadata.json");
-			if (File.Exists(metadataPath)) File.Delete(metadataPath);
+            // Write out some json metadata
+            string metadataPath = Path.Combine(outputPath, "metadata.json");
+            if (File.Exists(metadataPath)) File.Delete(metadataPath);
 
-			string metadataString = JsonConvert.SerializeObject(metadata);
+            string metadataString = JsonConvert.SerializeObject(metadata);
             File.WriteAllText(metadataPath, metadataString);
+
+            StorageUtilities.UpdateSetCompleted(TableClient, options.SetKey);
 
         }
 
@@ -218,12 +223,12 @@ namespace PyriteCloudRole
         {
             if (!File.Exists(slicingOptions.Obj))
             {
-                await StorageUtilities.DownloadBlobAsync(BlobClient, slicingOptions.Obj, slicingOptions.CloudObjPath, cancellationToken);
+                await StorageUtilities.DownloadBlobAsync(BlobClient, slicingOptions.Obj, slicingOptions.CloudObjPath, cancellationToken).ConfigureAwait(false);
             }
 
             if (!File.Exists(slicingOptions.Texture))
             {
-                await StorageUtilities.DownloadBlobAsync(BlobClient, slicingOptions.Texture, slicingOptions.CloudTexturePath, cancellationToken);
+                await StorageUtilities.DownloadBlobAsync(BlobClient, slicingOptions.Texture, slicingOptions.CloudTexturePath, cancellationToken).ConfigureAwait(false);
             }
         }
     }
