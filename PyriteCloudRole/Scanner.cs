@@ -64,7 +64,7 @@ namespace PyriteCloudRole
             }
 
             var messageContents = retrievedMessage.AsString;
-
+            SlicingOptions slicingOptions = null;
             try
             {
                 // Make some fresh directories
@@ -75,7 +75,7 @@ namespace PyriteCloudRole
                 Directory.CreateDirectory(inputPath);
 
                 // Get the message
-                SlicingOptions slicingOptions = JsonConvert.DeserializeObject<SlicingOptions>(messageContents);
+                slicingOptions = JsonConvert.DeserializeObject<SlicingOptions>(messageContents);
 
                 slicingOptions.Obj = Path.Combine(inputPath, slicingOptions.Obj);
                 slicingOptions.Texture = Path.Combine(inputPath, slicingOptions.Texture);
@@ -115,6 +115,9 @@ namespace PyriteCloudRole
             catch (Exception ex)
             {
                 Trace.TraceError(ex.ToString());
+
+                // Release texure if we have one
+                slicingOptions?.TextureInstance?.Dispose();
 
                 // Either delete this message or make it visible again for retry
                 if (retrievedMessage.DequeueCount > 3)
