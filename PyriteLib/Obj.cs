@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using PyriteLib.Types;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace PyriteLib
 {
@@ -126,30 +127,32 @@ namespace PyriteLib
             Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
             foreach (var uvTransform in options.UVTransforms)
             {
-                TransformUVsForTextureTile(options ,uvTransform.Key, uvTransform.Value);
+                TransformUVsForTextureTile(options ,uvTransform.Key, uvTransform.Value, new CancellationToken());
             }
         }
 
-        public void TransformUVsForTextureTile(SlicingOptions options, Vector2 textureTile, RectangleTransform[] uvTransforms) 
+        public void TransformUVsForTextureTile(SlicingOptions options, Vector2 textureTile, RectangleTransform[] uvTransforms, CancellationToken cancellationToken) 
         {
             Trace.TraceInformation("Transforming UV points for texture tile {0},{1}", textureTile.X, textureTile.Y);
 
             int newUVCount = 0, failedUVCount = 0, transformUVCount = 0;
 
+            cancellationToken.ThrowIfCancellationRequested();
             var faces = Texture.GetFaceListFromTextureTile(
                 options.TextureSliceY, 
                 options.TextureSliceX,
                 textureTile.X,
                 textureTile.Y, 
                 this);
-
-            var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).Distinct();
-            var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
+            
+            var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).WithCancellation(cancellationToken).Distinct();
+            var uvs = uvIndices.Select(i => TextureList[i - 1]).WithCancellation(cancellationToken).ToList();
 
             Trace.TraceInformation("Selected UVs");
 
             foreach (var uv in uvs)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var transforms = uvTransforms.Where(t => t.ContainsPoint(uv.OriginalX, uv.OriginalY));
 
                 if (transforms.Any())
@@ -164,7 +167,7 @@ namespace PyriteLib
                             TextureList[newIndex - 1].Transform(transform);
 
                             // Update all faces using the old UV in this extent
-                            faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index)).ForAll(face => face.UpdateTextureVertexIndex(uv.Index, newIndex, false));
+                            faces.AsParallel().Where(f => f.TextureVertexIndexList.Contains(uv.Index)).WithCancellation(cancellationToken).ForAll(face => face.UpdateTextureVertexIndex(uv.Index, newIndex, false));
 
                             newUVCount++;
                         }

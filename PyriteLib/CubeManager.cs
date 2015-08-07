@@ -112,7 +112,7 @@ namespace PyriteLib
             var transform = options.TextureInstance.GenerateTextureTile(fileOutPath, textureTile, options, cancellationToken);
 
             // Transform associated UV's
-            ObjInstance.TransformUVsForTextureTile(options, textureTile, transform);      
+            ObjInstance.TransformUVsForTextureTile(options, textureTile, transform, cancellationToken);      
         }
 
         // Action to show incremental file loading status
