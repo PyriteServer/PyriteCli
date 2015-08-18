@@ -27,4 +27,4 @@ PyriteCLI details are included in the [Pyrite Server Wiki](https://github.com/Py
 
 
 #### Usage
-```cuber --help```
+```PyriteCli --help```
