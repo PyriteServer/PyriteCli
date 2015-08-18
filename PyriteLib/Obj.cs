@@ -146,7 +146,7 @@ namespace PyriteLib
                 this);
             
             var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).WithCancellation(cancellationToken).Distinct();
-            var uvs = uvIndices.Select(i => TextureList[i - 1]).WithCancellation(cancellationToken).ToList();
+            var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
 
             Trace.TraceInformation("Selected UVs");
 

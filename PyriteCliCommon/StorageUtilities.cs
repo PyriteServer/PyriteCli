@@ -14,6 +14,9 @@ namespace PyriteCliCommon
 {
     public static class StorageUtilities
     {
+        private const string SetsTableName = "sets";
+        private const string WorkTableName = "work";
+
         public static string UploadBlob(CloudBlobClient client, string localPath, string remotePath, string containerName)
         {
             var container = client.GetContainerReference(containerName);
@@ -36,25 +39,38 @@ namespace PyriteCliCommon
 
         public static void InsertSetMetadata(CloudTableClient client, SetEntity set)
         {
-            // Create the CloudTable object that represents the "people" table.
-            CloudTable table = client.GetTableReference("sets");
+            // Create the CloudTable object that represents the "sets" table.
+            CloudTable table = client.GetTableReference(SetsTableName);
             table.CreateIfNotExists();
 
-            // Create the TableOperation that inserts the customer entity.
+            // Create the TableOperation that inserts the set entity.
             TableOperation insertOperation = TableOperation.Insert(set);
 
             // Execute the insert operation.
             table.Execute(insertOperation);
         }
 
-        public static void InsertWorkCompleteMetadata(CloudTableClient client, WorkEntity work)
+        public static void InsertWorkStartedMetadata(CloudTableClient client, WorkEntity work)
         {
-            // Create the CloudTable object that represents the "people" table.
-            CloudTable table = client.GetTableReference("work");
+            // Create the CloudTable object that represents the "work" table.
+            CloudTable table = client.GetTableReference(WorkTableName);
             table.CreateIfNotExists();
 
-            // Create the TableOperation that inserts the customer entity.
+            // Create the TableOperation that inserts the work entity.
             TableOperation insertOperation = TableOperation.Insert(work);
+
+            // Execute the insert operation.
+            TableResult result = table.Execute(insertOperation);
+        }
+
+        public static void UpdateWorkCompletedMetadata(CloudTableClient client, WorkEntity work)
+        {
+            // Create the CloudTable object that represents the "work" table.
+            CloudTable table = client.GetTableReference(WorkTableName);
+            table.CreateIfNotExists();
+
+            // Create the TableOperation that inserts the work entity.
+            TableOperation insertOperation = TableOperation.Merge(work);
 
             // Execute the insert operation.
             table.Execute(insertOperation);
@@ -62,30 +78,33 @@ namespace PyriteCliCommon
 
         public static int GetWorkCompletedCount(CloudTableClient client, string resultPath, string container)
         {
-            CloudTable table = client.GetTableReference("work");
+            var workTable = client.GetTableReference(WorkTableName);
+            TableQuery<WorkEntity> workItemQuery = new TableQuery<WorkEntity>().Where(
+                TableQuery.CombineFilters(
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WorkEntity.EncodeResultPath(resultPath, container)),
+                    TableOperators.And,
+                    TableQuery.GenerateFilterCondition("CompletedTime", QueryComparisons.NotEqual, ""))).Select(new[] { "RowKey" });
 
-            var tiles = from result in table.CreateQuery<WorkEntity>()
-                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath, container)
-                        select result.RowKey;
-
-            return tiles.ToList().Count();
+            var completedItems = workTable.ExecuteQuery(workItemQuery);
+            return completedItems.ToList().Count;
         }
 
         public static IEnumerable<WorkEntity> GetWorkCompletedMetadata(CloudTableClient client, string resultPath, string container)
         {
-            CloudTable table = client.GetTableReference("work");
+            var workTable = client.GetTableReference(WorkTableName);
+            TableQuery<WorkEntity> workItemQuery = new TableQuery<WorkEntity>().Where(
+                TableQuery.CombineFilters(
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WorkEntity.EncodeResultPath(resultPath, container)),
+                    TableOperators.And,
+                    TableQuery.GenerateFilterCondition("CompletedTime", QueryComparisons.NotEqual, "")));
 
-            var tiles = from result in table.CreateQuery<WorkEntity>()
-                        where result.PartitionKey == WorkEntity.EncodeResultPath(resultPath, container)
-                        select result;
-
-            return tiles;
+            return workTable.ExecuteQuery(workItemQuery);
         }
 
         public static void UpdateSetCompleted(CloudTableClient client, string setRowKey)
         {
             var setPartiionKey = SetEntity.DefaultPartitionKey;
-            CloudTable table = client.GetTableReference("sets");
+            CloudTable table = client.GetTableReference(SetsTableName);
 
             var entry = new DynamicTableEntity(setPartiionKey, setRowKey, "*", new Dictionary<string, EntityProperty>());
             entry.Properties["CompletedOn"] = new EntityProperty(DateTime.UtcNow);

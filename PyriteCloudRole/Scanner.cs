@@ -80,6 +80,13 @@ namespace PyriteCloudRole
                 slicingOptions.Obj = Path.Combine(inputPath, slicingOptions.Obj);
                 slicingOptions.Texture = Path.Combine(inputPath, slicingOptions.Texture);
 
+                var workTrackingEntity = new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y)
+                {
+                    StartTime = startTime,
+                };
+                                                                                            
+                StorageUtilities.InsertWorkStartedMetadata(TableClient, workTrackingEntity);
+
                 // ** Prep
                 Trace.TraceInformation("Syncing data");
                 await VerifySourceDataAsync(slicingOptions, cancellationToken);
@@ -95,12 +102,11 @@ namespace PyriteCloudRole
 
                 var vertexCounts = await manager.GenerateCubesForTextureTileAsync(outputPath, slicingOptions.TextureTile, slicingOptions, cancellationToken).ConfigureAwait(false);
 
-                StorageUtilities.InsertWorkCompleteMetadata(TableClient,
-                    new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y, DateTime.UtcNow)
-                    {
-                        MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts),
-                        StartTime = startTime
-                    });
+                // Update work entity
+                workTrackingEntity.MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts);
+                workTrackingEntity.CompletedTime = DateTime.UtcNow;
+
+                StorageUtilities.UpdateWorkCompletedMetadata(TableClient, workTrackingEntity);
 
                 // ** Check if set is complete
                 CheckForComplete(slicingOptions, manager);
