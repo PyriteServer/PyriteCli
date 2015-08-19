@@ -228,7 +228,7 @@ namespace PyriteLib
 				var r = uvRects[i];
 				rects[i] = new Rectangle(
 					(int)(r.X * textureSize.Width) - pixelBuffer, 
-					(int)((1 - r.Y) * textureSize.Height) - pixelBuffer, 
+					(int)((1 - r.Bottom) * textureSize.Height) - pixelBuffer, 
 					(int)(r.Width * textureSize.Width) + (pixelBuffer * 2), 
 					(int)(r.Height * textureSize.Height) + (pixelBuffer * 2));
 			}
@@ -251,7 +251,7 @@ namespace PyriteLib
 				float minY = (float)uvs.Min(uv => uv.Y);
 				float maxY = (float)uvs.Max(uv => uv.Y);
 
-				rects[i] = new RectangleF(minX, maxY, maxX - minX, maxY - minY);
+				rects[i] = new RectangleF(minX, minY, maxX - minX, maxY - minY);
 			}
 
 			// Remove rectangles fully contained by others
