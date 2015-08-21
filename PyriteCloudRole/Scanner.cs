@@ -67,25 +67,18 @@ namespace PyriteCloudRole
             SlicingOptions slicingOptions = null;
             try
             {
-                // Make some fresh directories
-                outputPath = Path.Combine(RoleEnvironment.GetLocalResource("output").RootPath, Guid.NewGuid().ToString());
-                inputPath = Path.Combine(RoleEnvironment.GetLocalResource("input").RootPath, Guid.NewGuid().ToString());
-
-                Directory.CreateDirectory(outputPath);
-                Directory.CreateDirectory(inputPath);
-
                 // Get the message
                 slicingOptions = JsonConvert.DeserializeObject<SlicingOptions>(messageContents);
 
+                // Make some fresh directories
+                CreateDirectories(slicingOptions);
+
+                // Populate input file locations
                 slicingOptions.Obj = Path.Combine(inputPath, slicingOptions.Obj);
                 slicingOptions.Texture = Path.Combine(inputPath, slicingOptions.Texture);
 
-                var workTrackingEntity = new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y)
-                {
-                    StartTime = startTime,
-                };
-                                                                                            
-                StorageUtilities.InsertWorkStartedMetadata(TableClient, workTrackingEntity);
+                // Track work started
+                var workTrackingEntity = TrackWorkStarted(startTime, slicingOptions);
 
                 // ** Prep
                 Trace.TraceInformation("Syncing data");
@@ -94,7 +87,7 @@ namespace PyriteCloudRole
                 // ** Run
                 Trace.TraceInformation("Starting Processing");
                 CubeManager manager = new CubeManager(slicingOptions);
-                
+
                 if (!string.IsNullOrEmpty(slicingOptions.Texture))
                 {
                     slicingOptions.TextureInstance = new Texture(manager.ObjInstance, slicingOptions.Texture);
@@ -102,11 +95,8 @@ namespace PyriteCloudRole
 
                 var vertexCounts = await manager.GenerateCubesForTextureTileAsync(outputPath, slicingOptions.TextureTile, slicingOptions, cancellationToken).ConfigureAwait(false);
 
-                // Update work entity
-                workTrackingEntity.MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts);
-                workTrackingEntity.CompletedTime = DateTime.UtcNow;
-
-                StorageUtilities.UpdateWorkCompletedMetadata(TableClient, workTrackingEntity);
+                // Track work completed
+                TrackWorkCompleted(workTrackingEntity, vertexCounts);
 
                 // ** Check if set is complete
                 CheckForComplete(slicingOptions, manager);
@@ -146,6 +136,34 @@ namespace PyriteCloudRole
                     Directory.Delete(inputPath, true);
                 }
             }
+        }
+
+        private void CreateDirectories(SlicingOptions slicingOptions)
+        {
+            outputPath = Path.Combine(RoleEnvironment.GetLocalResource("output").RootPath, Guid.NewGuid().ToString());
+            inputPath = Path.Combine(RoleEnvironment.GetLocalResource("input").RootPath, slicingOptions.CloudResultContainer);
+
+            Directory.CreateDirectory(outputPath);
+            Directory.CreateDirectory(inputPath);
+        }
+
+        private static WorkEntity TrackWorkStarted(DateTime startTime, SlicingOptions slicingOptions)
+        {
+            var workTrackingEntity = new WorkEntity(slicingOptions.CloudResultPath, slicingOptions.CloudResultContainer, slicingOptions.TextureTile.X, slicingOptions.TextureTile.Y)
+            {
+                StartTime = startTime,
+            };
+
+            StorageUtilities.InsertWorkStartedMetadata(TableClient, workTrackingEntity);
+            return workTrackingEntity;
+        }
+
+        private static void TrackWorkCompleted(WorkEntity workTrackingEntity, System.Collections.Generic.Dictionary<Vector3, int> vertexCounts)
+        {
+            workTrackingEntity.MetadataBase64 = SerializationUtilities.EncodeMetadataToBase64(vertexCounts);
+            workTrackingEntity.CompletedTime = DateTime.UtcNow;
+
+            StorageUtilities.UpdateWorkCompletedMetadata(TableClient, workTrackingEntity);
         }
 
         private void CheckForComplete(SlicingOptions options, CubeManager manager)
@@ -215,16 +233,6 @@ namespace PyriteCloudRole
                     slicingOptions.CloudResultContainer);
 
                 File.Delete(file);
-            }
-
-            try
-            {
-                File.Delete(slicingOptions.Obj);
-                File.Delete(slicingOptions.Texture);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError("Failure cleaning up source data. " + ex.ToString());
             }
         }
 
