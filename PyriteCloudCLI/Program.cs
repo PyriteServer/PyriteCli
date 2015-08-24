@@ -109,7 +109,8 @@ namespace PyriteCli
                 // Queue work
                 var setEntity = new SetEntity("Set", DateTime.UtcNow)
                 {
-                    ResultPath = options.CloudResultContainer + options.CloudResultPath,
+                    ResultPath = options.CloudResultPath,
+                    ResultContainer = options.CloudResultContainer,
                     TextureTilesX = setSize.X,
                     TextureTilesY = setSize.Y
                 };

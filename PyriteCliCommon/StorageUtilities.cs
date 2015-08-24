@@ -9,6 +9,7 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Table;
 using PyriteCliCommon.Models;
+using PyriteCliCommon.Contracts;
 
 namespace PyriteCliCommon
 {
@@ -112,6 +113,67 @@ namespace PyriteCliCommon
             var mergeOperation = TableOperation.Merge(entry);
 
             table.Execute(mergeOperation);
+        }
+
+        public static IEnumerable<SetInfo> GetRecentSets(CloudTableClient client, int count)
+        {
+            CloudTable setTable = client.GetTableReference(SetsTableName);
+            TableQuery<SetEntity> setQuery = new TableQuery<SetEntity>().Where(
+                TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, SetEntity.DefaultPartitionKey)
+                ).Take(count);
+
+            IEnumerable<SetEntity> sets = setTable.ExecuteQuery(setQuery);
+
+            return sets.Select(set => CreateSetInfoFromEntity(client, set));
+        }
+
+        private static SetInfo CreateSetInfoFromEntity(CloudTableClient client, SetEntity set)
+        {
+            SetInfo setInfo = new SetInfo();
+
+            setInfo.CompletedAt = set.CompletedOn;
+            setInfo.CompletedWorkItems = new List<WorkItem>();
+            setInfo.Container = set.ResultContainer;
+            setInfo.ExpectedWorkItems = set.TextureTilesX * set.TextureTilesY;
+            setInfo.Id = set.RowKey;
+            setInfo.InProgressWorkItems = new List<WorkItem>();
+            setInfo.Path = set.ResultPath;
+            setInfo.QueuedAt = set.CreatedOn;
+            setInfo.Status = "NotStarted";
+
+            if (set.Completed)
+            {
+                setInfo.Status = "Completed";
+            }
+
+            TableQuery<WorkEntity> workQuery = new TableQuery<WorkEntity>().Where(
+                TableQuery.GenerateFilterCondition(
+                    "PartitionKey",
+                    QueryComparisons.Equal,
+                    WorkEntity.EncodeResultPath(set.ResultPath, set.ResultContainer))
+                );
+
+            IEnumerable<WorkEntity> workEntities = client.GetTableReference(WorkTableName).ExecuteQuery(workQuery);
+
+            foreach (var workEntity in workEntities)
+            {
+                WorkItem workItem = new WorkItem();
+                workItem.X = workEntity.TextureTileX;
+                workItem.Y = workEntity.TextureTileY;
+                workItem.StartedAt = workEntity.StartTime;
+                workItem.CompletedAt = workEntity.CompletedTime;
+
+                if(workItem.CompletedAt.HasValue)
+                {
+                    setInfo.CompletedWorkItems.Add(workItem);
+                } else
+                {
+                    setInfo.Status = "InProgress";
+                    setInfo.InProgressWorkItems.Add(workItem);
+                }
+            }
+
+            return setInfo;
         }
     }
 }

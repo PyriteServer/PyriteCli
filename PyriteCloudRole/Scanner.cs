@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using PyriteCliCommon;
 using PyriteCliCommon.Models;
 using PyriteLib;
+using Microsoft.Azure;
 
 namespace PyriteCloudRole
 {

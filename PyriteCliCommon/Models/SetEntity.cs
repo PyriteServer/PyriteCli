@@ -9,12 +9,12 @@ namespace PyriteCliCommon.Models
 {
     public class SetEntity : TableEntity
     {
-        public static readonly string DefaultPartitionKey = "PROCESSINGSET";
+        public static readonly string DefaultPartitionKey = "PYRITEPROCESSINGSET";
 
         public SetEntity(string setName, DateTime queueTime)
         {
             this.PartitionKey = DefaultPartitionKey;
-            this.RowKey = string.Format("{0}_{1}", queueTime.ToUniversalTime().Ticks, setName);
+            this.RowKey = string.Format("{0}_{1}", (DateTime.MaxValue - queueTime.ToUniversalTime()).Ticks, setName);
             this.CreatedOn = queueTime;
         }
 
@@ -25,6 +25,7 @@ namespace PyriteCliCommon.Models
         public int TextureTilesX { get; set; }
         public int TextureTilesY { get; set; }
         public string ResultPath { get; set; }
+        public string ResultContainer { get; set; }
         public DateTime? StartedOn { get; set; }
         public bool Completed { get; set; }
         public DateTime? CompletedOn { get; set; }

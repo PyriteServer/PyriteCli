@@ -1,0 +1,77 @@
+﻿<div id="setResults">
+    <table id="setResultsTable" class="table">
+        <thead>
+            <tr>
+                <td>Id</td>
+                <td>Container</td>
+                <td>Path</td>
+                <td>QueuedAt</td>
+                <td>CompletedAt</td>
+                <td>InProgress Count</td>
+                <td>CompletedCount</td>
+                <td>Expected Count</td>
+                <td>Status</td>
+            </tr>
+        </thead>
+        <tbody id="setResultsTableBody"></tbody>
+    </table>
+</div>
+
+@section scripts {
+
+    <script>
+
+        $(function () {
+            pollAndUpdate();
+            startPolling();
+
+        });
+
+        function startPolling() {
+            setTimeout(function () {
+                pollAndUpdate();
+                startPolling();
+            }, 5000);
+        }
+
+        function pollAndUpdate() {
+            $.getJSON('/api/sets', null, function (data) {
+                $('#setResultsTableBody').empty();
+                console.log(data.length);
+                data.forEach(function (set, index, array) {
+                    var setRow = $('<tr></tr>');
+                    var totalExpectedWorkItemCount = set.X * set.Y;
+
+
+                    if (set.Status === 'Completed') {
+                        setRow.addClass('success');
+                    } else if (set.Status === 'InProgress') {
+                        setRow.addClass('warning');
+                    }
+
+                   
+                    //<td>Id</td>
+                    setRow.append($('<td></td>').text(set.Id));
+                    //<td>Container</td>
+                    setRow.append($('<td></td>').text(set.Container));
+                    //<td>Path</td>
+                    setRow.append($('<td></td>').text(set.Path));
+                    //<td>QueuedAt</td>
+                    setRow.append($('<td></td>').text(set.QueuedAt));
+                    //<td>CompletedAt</td>
+                    setRow.append($('<td></td>').text(set.CompletedAt || ''));
+                    //<td>InProgress</td>
+                    setRow.append($('<td></td>').text((set.InProgressWorkItems || []).length));
+                    //<td>Completed</td>
+                    setRow.append($('<td></td>').text((set.CompletedWorkItems || []).length));
+                    //<td>Expected</td>
+                    setRow.append($('<td></td>').text(set.ExpectedWorkItems));
+                    //<td>Status</td>
+                    setRow.append($('<td></td>').text(set.Status));
+                    $('#setResultsTableBody').append(setRow);
+
+                });
+            });
+        }
+</script>
+}
