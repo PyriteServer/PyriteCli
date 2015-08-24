@@ -316,18 +316,19 @@ namespace PyriteLib
 			return groupedFaces;
 		}
 
+
 		private static bool FacesIntersect(Face f, List<Face> matches)
 		{
 			foreach (var m in matches)
 			{
-				foreach (int vt in m.TextureVertexIndexList)
-				{
-					if (f.TextureVertexIndexHash.Contains(vt))
-					{
-						return true;
-					}
-				}
-			}
+                foreach (int vt in m.TextureVertexIndexList)
+                {
+                    if (f.TextureVertexIndexHash.Contains(vt))
+                    {
+                        return true;
+                    }
+                }
+            }
 
 			return false;
 		}

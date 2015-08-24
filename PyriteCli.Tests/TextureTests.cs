@@ -68,7 +68,6 @@ namespace PyriteCli.Tests
             var texture = GetTestTexture();
             PrivateObject textureObject = new PrivateObject(texture);
 
-            // private List<Face> GetFaceList(int gridHeight, int gridWidth, int tileX, int tileY, bool cubical)
             List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
 
             Stopwatch watch = Stopwatch.StartNew();
@@ -79,7 +78,28 @@ namespace PyriteCli.Tests
 			Console.WriteLine("Connected Faces Milliseconds: " + watch.ElapsedMilliseconds);			
 		}
 
-		[TestMethod]
+        [TestMethod]
+        public void FacesIntersectPerf()
+        {
+            // private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
+            PrivateType textureType = new PrivateType(typeof(Texture));
+
+            // private static bool FacesIntersect(Face f, List<Face> matches)
+            var texture = GetTestTexture();
+            PrivateObject textureObject = new PrivateObject(texture);
+
+            List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
+
+            Stopwatch watch = Stopwatch.StartNew();
+            for (int i = 0; i < 10; i++)
+            {
+                bool result = (bool)textureType.InvokeStatic("FacesIntersect", new Object[] { faces[i % 1000], faces });
+            }
+
+            Console.WriteLine("Faces Intersect Milliseconds: " + watch.ElapsedMilliseconds);
+        }
+
+        [TestMethod]
 		public void FindUVRectanglesTest()
 		{
 			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
