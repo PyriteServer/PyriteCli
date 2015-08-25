@@ -21,6 +21,7 @@ namespace PyriteCliCommon
         public static string UploadBlob(CloudBlobClient client, string localPath, string remotePath, string containerName)
         {
             var container = client.GetContainerReference(containerName);
+            container.CreateIfNotExists(BlobContainerPublicAccessType.Off);
             var blob = container.GetBlockBlobReference(remotePath);
             blob.UploadFromFile(localPath, FileMode.Open);
             return (blob.Uri.ToString());
@@ -115,6 +116,22 @@ namespace PyriteCliCommon
             table.Execute(mergeOperation);
         }
 
+        public static void UpdateSetFailed(CloudTableClient client, string setRowKey, string failureMessage = null)
+        {
+            var setPartiionKey = SetEntity.DefaultPartitionKey;
+            CloudTable table = client.GetTableReference(SetsTableName);
+
+            var entry = new DynamicTableEntity(setPartiionKey, setRowKey, "*", new Dictionary<string, EntityProperty>());
+            entry.Properties["Failed"] = new EntityProperty(true);
+            if(!string.IsNullOrEmpty(failureMessage))
+            {
+                entry.Properties["FailureMessage"] = new EntityProperty(failureMessage);
+            }
+            var mergeOperation = TableOperation.Merge(entry);
+
+            table.Execute(mergeOperation);
+        }
+
         public static IEnumerable<SetInfo> GetRecentSets(CloudTableClient client, int count)
         {
             CloudTable setTable = client.GetTableReference(SetsTableName);
@@ -141,10 +158,7 @@ namespace PyriteCliCommon
             setInfo.QueuedAt = set.CreatedOn;
             setInfo.Status = "NotStarted";
 
-            if (set.Completed)
-            {
-                setInfo.Status = "Completed";
-            }
+
 
             TableQuery<WorkEntity> workQuery = new TableQuery<WorkEntity>().Where(
                 TableQuery.GenerateFilterCondition(
@@ -171,6 +185,14 @@ namespace PyriteCliCommon
                     setInfo.Status = "InProgress";
                     setInfo.InProgressWorkItems.Add(workItem);
                 }
+            }
+
+            if (set.Completed)
+            {
+                setInfo.Status = "Completed";
+            } else if(set.Failed)
+            {
+                setInfo.Status = "Failed";
             }
 
             return setInfo;

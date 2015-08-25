@@ -119,6 +119,12 @@ namespace PyriteCloudRole
                 // Either delete this message or make it visible again for retry
                 if (retrievedMessage.DequeueCount > 3)
                 {
+                    if (slicingOptions != null)
+                    {
+                        Trace.TraceError($"Maximum Dequeue count hit for message \"{retrievedMessage.AsString}\". Failing set {slicingOptions.SetKey}");
+                        StorageUtilities.UpdateSetFailed(TableClient, slicingOptions.SetKey, ex.ToString());
+                    }
+                    
                     WorkQueue.DeleteMessage(retrievedMessage);
                 }
                 else
