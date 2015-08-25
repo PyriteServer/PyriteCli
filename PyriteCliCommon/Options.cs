@@ -84,7 +84,7 @@ namespace PyriteCliCommon
             ScaleTexture = 1;
             TextureXSize = 4;
             TextureYSize = 4;
-            ForceCubical = true;
+            ForceCubical = false;
             Debug = false;
         }
     }
