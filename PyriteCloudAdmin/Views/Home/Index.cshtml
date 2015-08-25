@@ -47,8 +47,9 @@
                         setRow.addClass('success');
                     } else if (set.Status === 'InProgress') {
                         setRow.addClass('warning');
+                    } else if (set.Status === 'Failed') {
+                        setRow.addClass('danger');
                     }
-
                    
                     //<td>Id</td>
                     setRow.append($('<td></td>').text(set.Id));

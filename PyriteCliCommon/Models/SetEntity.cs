@@ -29,5 +29,7 @@ namespace PyriteCliCommon.Models
         public DateTime? StartedOn { get; set; }
         public bool Completed { get; set; }
         public DateTime? CompletedOn { get; set; }
+        public bool Failed { get; set; }
+        public string FailureMessage { get; set; }
     }
 }
