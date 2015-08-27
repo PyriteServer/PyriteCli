@@ -762,11 +762,14 @@ namespace PyriteLib
         /// We block on writing the line, and incrementing the index.
         /// Has no real performance impact as most of the time is spent traversing arrays.
         /// </summary>
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        object vertexWriteLock = new object();
         private int WriteVertexWithNewIndex<T>(T item, ref int index, StreamWriter writer)
         {
-            writer.WriteLine(item);
-            index++;
+            lock (vertexWriteLock)
+            {
+                writer.WriteLine(item);
+                index++;
+            }
             return index;
         }
 
