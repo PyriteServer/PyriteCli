@@ -17,6 +17,7 @@ namespace PyriteLib
         public bool Debug { get; set; }
         public string Texture { get; set; }
         public string Obj { get; set; }
+        public bool WriteMtl { get; set; }
         public int TextureSliceX { get; set; }
         public int TextureSliceY { get; set; }
         public float TextureScale { get; set; }
@@ -32,5 +33,9 @@ namespace PyriteLib
         public Vector2 TextureTile { get; set; }
         public string SetKey { get; set; }
 
+        public bool RequiresTextureProcessing()
+        {
+            return !string.IsNullOrEmpty(Texture) && (TextureSliceX + TextureSliceY) > 2;
+        }
     }
 }

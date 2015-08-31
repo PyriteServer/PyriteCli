@@ -46,6 +46,10 @@ namespace PyriteCliCommon
             Description = "Generate OBJ files designed for use with CubeServer")]
         public bool Obj { get; set; }
 
+        [NamedArgument("writemtl", Action = ParseAction.StoreTrue,
+            Description = "Writes one MTL file per texture and updates OBJ reference")]
+        public bool WriteMtl { get; set; }
+
         [NamedArgument('e', "ebo", Action = ParseAction.StoreTrue,
             Description = "Generate EBO files designed for use with CubeServer")]
         public bool Ebo { get; set; }

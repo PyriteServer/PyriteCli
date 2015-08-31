@@ -63,6 +63,7 @@ namespace PyriteCli
                             GenerateObj = opt.Obj,
                             Texture = opt.Texture,
                             Obj = path,
+                            WriteMtl = opt.WriteMtl,
                             TextureScale = opt.ScaleTexture,
                             TextureSliceX = opt.TextureXSize,
                             TextureSliceY = opt.TextureYSize,
@@ -92,9 +93,9 @@ namespace PyriteCli
             {
                 return;
             }
-            catch (ParseException)
+            catch (ParseException ex)
             {
-                Console.WriteLine("usage: PyriteCli --help");
+                Console.WriteLine("usage: PyriteCli --help\n" + ex.ToString());
             }
 
             stopwatch.Stop();

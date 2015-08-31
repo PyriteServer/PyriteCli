@@ -62,6 +62,7 @@ namespace PyriteCli
                     GenerateObj = opt.Obj,
                     Texture = Path.GetFileName(opt.Texture),
                     Obj = Path.GetFileName(opt.Input.First()),
+                    WriteMtl = opt.WriteMtl,
                     TextureScale = opt.ScaleTexture,
                     TextureSliceX = opt.TextureXSize,
                     TextureSliceY = opt.TextureYSize,

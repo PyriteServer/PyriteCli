@@ -41,7 +41,7 @@ namespace PyriteLib
                 VertexCount = ObjInstance.VertexList.Count };
 
             // Configure texture slicing metadata
-            if (!string.IsNullOrEmpty(options.Texture) && (options.TextureSliceX + options.TextureSliceY) > 2)
+            if (options.RequiresTextureProcessing())
             {
                 metadata.TextureSetSize = new Vector2(options.TextureSliceX, options.TextureSliceY);
             }

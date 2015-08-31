@@ -242,7 +242,7 @@ namespace PyriteLib
             if (options.GenerateObj)
             {
                 string comment = string.Format("Texture Tile {0},{1}", tile.X, tile.Y);
-                WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList, comment);
+                WriteObjFormattedFile(objPath, options.OverrideMtl, chunkFaceList, tile, options, comment);
                 chunkFaceList.AsParallel().ForAll(f => f.RevertVertices());
             }
 
@@ -481,7 +481,7 @@ namespace PyriteLib
             }
         }
 
-        private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, string comment = "")
+        private void WriteObjFormattedFile(string path, string mtlOverride, List<Face> chunkFaceList, Vector2 tile, SlicingOptions options, string comment = "")
         {
             // Build a list of vertices indexes needed for these faces
             List<int> requiredVertices = null;
@@ -507,9 +507,13 @@ namespace PyriteLib
                 {
                     writer.WriteLine("mtllib " + mtlOverride);
                 }
-                else if (!string.IsNullOrEmpty(_mtl))
+                else if (!string.IsNullOrEmpty(_mtl) && !options.RequiresTextureProcessing())
                 {
                     writer.WriteLine("mtllib " + _mtl);
+                }
+                else if (options.RequiresTextureProcessing() && options.WriteMtl)
+                {
+                    writer.WriteLine("mtllib texture\\{0}_{1}.mtl", tile.X, tile.Y);
                 }
 
                 // Write each vertex and update faces		
