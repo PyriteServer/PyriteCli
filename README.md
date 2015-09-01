@@ -5,26 +5,24 @@ master | Project
 # Pyrite CLI
 ### A tool for slicing meshes
 
-*Pyrite CLI is under heavy development as part of a pre-processing pipeline for Pyrite3D.  You are welcome to use it now, but you should expect issues*
+PyriteCLI is the command line mesh and texture slicer that builds the source data for the Pyrite3D framework.  PyriteCLI makes up one of the three core parts of the framework.  The other two being the [Server](https://github.com/PyriteServer/PyriteServer) and the [Client](https://github.com/PyriteServer/PyriteDemoClient).
 
-PyriteCLI details are included in the [Pyrite Server Wiki](https://github.com/PyriteServer/PyriteServer/wiki).
+PyriteCLI is capable of sophisticated processing of both mesh files and textures to generate datasets which can be streamed on-demand to clients.  This capabilities can also be used for other purposes, such as slicing a large mesh into smaller chunks for direct use in Unity or WebGL applications.
 
-#### Features
+####Capabilities
 
-* Parses Wavefront OBJ formatted mesh files
-* Slices source mesh in three dimensions to create a set of smaller, valid OBJ files of any size
-* Leverages all available CPU cores
-* Works on very large meshes (tens of millions of vertices)
-* Support for a custom binary output format (.ebo) designed for streaming mesh data
-* Various miscellaneous features to support CubeServer
++ Slice meshes in three dimensions 
++ Operate on very large meshes (100+ million vertices)
++ Dissassemble and reassemble packed texture files into multiple smaller texture files
++ Wavefront OBJ + JPG input
++ OBJ, CTM, and EBO output
++ Distributed cloud processing support for advanced users
 
+####Tutorials
 
-
-#### Limitations
-* Currently supports V, VT, F, and MTLLIB commands in OBJ files
-* Only tested on meshes with triangular faces
-
+Simple slicing of an OBJ and texture file
+[Video on Youtube](https://www.youtube.com/watch?v=49oem-evWCU&feature=youtu.be)
 
 
-#### Usage
+####Usage
 ```PyriteCli --help```
