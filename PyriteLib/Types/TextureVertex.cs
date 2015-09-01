@@ -87,5 +87,12 @@ namespace PyriteLib.Types
 		        return newIndex;
 		    }
         }
+
+        public bool Near(double x, double y)
+        {
+            if ((Math.Abs(X - x) < 0.00001) && (Math.Abs(Y - y) < 0.00001)) return true;
+            if ((Math.Abs(OriginalX - x) < 0.00001) && (Math.Abs(OriginalY - y) < 0.00001)) return true;
+            return false;
+        }
     }
 }

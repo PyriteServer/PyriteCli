@@ -56,17 +56,32 @@ namespace PyriteLib
                 Texture t = new Texture(this.ObjInstance, options.Texture);
                 options.TextureInstance = t;
             }
-          
-            // Generate the data			
-            SpatialUtilities.EnumerateSpaceParallel(metadata.TextureSetSize, (x, y) =>
-            {
-                var vertexCounts = GenerateCubesForTextureTileAsync(outputPath, new Vector2(x, y), options, new CancellationToken()).Result;
 
-                foreach (var cube in vertexCounts.Keys)
+            // Generate the data			
+            if (options.Debug)
+            {
+                SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, (x, y) =>
                 {
-                    metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] >  0;
-                }
-            });
+                    var vertexCounts = GenerateCubesForTextureTileAsync(outputPath, new Vector2(x, y), options, new CancellationToken()).Result;
+
+                    foreach (var cube in vertexCounts.Keys)
+                    {
+                        metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] > 0;
+                    }
+                });
+            }
+            else
+            {
+                SpatialUtilities.EnumerateSpaceParallel(metadata.TextureSetSize, (x, y) =>
+                {
+                    var vertexCounts = GenerateCubesForTextureTileAsync(outputPath, new Vector2(x, y), options, new CancellationToken()).Result;
+
+                    foreach (var cube in vertexCounts.Keys)
+                    {
+                        metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] > 0;
+                    }
+                });
+            }
 
             // Write out some json metadata
             string metadataPath = Path.Combine(outputPath, "metadata.json");

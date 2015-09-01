@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using PyriteLib.Types;
@@ -85,24 +86,18 @@ namespace PyriteLib
 			}
 		}
 
-		public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms, TextureVertex[] uvs)
+        public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms, TextureVertex[] uvs, Vector2 tile)
 		{
-			using (Image output = Image.FromFile(texturePath))
-			{
-				using (Graphics g = Graphics.FromImage(output))
-				{
-					//g.Clear(Color.Black);
-					g.DrawRectangles(new Pen(Color.Red, 10), transforms.Select(t => t.ToRectangle(output.Size)).ToArray());
-					if (uvs != null)
-					{
-						g.DrawRectangles(new Pen(Color.Green, 10), uvs.Select(u => new Rectangle((int)(u.X * output.Width - 5), (int)((1 - u.Y) * output.Height - 5), 10, 10)).ToArray());
-					}
-				}
+            using (Image output = Image.FromFile(texturePath))
+            {
+                using (Graphics g = Graphics.FromImage(output))
+                {
+                    g.DrawRectangles(new Pen(Color.Red, 10), transforms.Select(t => t.ToRectangle(output.Size)).ToArray());
+                }
 
-				// Write to disk
-				WriteDebugImage(output, texturePath, "transforms");
-			}
-
+                // Write to disk
+                WriteDebugImage(output, texturePath, string.Format("transforms_{0}_{1}", tile.X, tile.Y));
+            }       
 		}
 
 		// The z axis is collapsed for the purpose of texture slicing.
