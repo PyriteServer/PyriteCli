@@ -192,7 +192,7 @@ namespace PyriteLib
             {
                 var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
                 var relevantTransforms = uvTransforms;
-                    options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs, textureTile);
+                    //options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs, textureTile);
             }
         }
 

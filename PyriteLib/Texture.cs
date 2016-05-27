@@ -1,23 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using DotImaging;
+using DotImaging.Primitives2D;
 using PyriteLib.Types;
 
 namespace PyriteLib
 {
-    public class Texture : IDisposable
+    public class Texture
 	{
         public Obj TargetObj { get; set; }
 
-        private Image source;
+        private Bgr<byte>[,] source;
         private object sourceLock = new object();
         private bool disposed = false;
 
@@ -29,35 +28,12 @@ namespace PyriteLib
         public Texture(Obj obj, string texturePath)
         {
             TargetObj = obj;
-            source = Image.FromFile(texturePath);
-        }
-
-        ~Texture()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    source?.Dispose();
-                }
-            }
-            disposed = true;
+            source = ImageIO.LoadColor(texturePath).ToBgr();
         }
 
         // Generates a copy of the provided texture and
         // draws the outline of all UVW's on the image
-        public void MarkupTextureFaces(string texturePath)
+    /*    public void MarkupTextureFaces(string texturePath)
 		{
 			string outputPath = texturePath + "_debug.jpg";
 
@@ -84,8 +60,7 @@ namespace PyriteLib
 				if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
 				output.Save(outputPath, ImageFormat.Jpeg);
 			}
-		}
-
+		}           
         public void MarkupTextureTransforms(string texturePath, RectangleTransform[] transforms, TextureVertex[] uvs, Vector2 tile)
 		{
             using (Image output = Image.FromFile(texturePath))
@@ -98,7 +73,8 @@ namespace PyriteLib
                 // Write to disk
                 WriteDebugImage(output, texturePath, string.Format("transforms_{0}_{1}", tile.X, tile.Y));
             }       
-		}
+		}      */
+
 
 		// The z axis is collapsed for the purpose of texture slicing.
 		// Texture tiles correlate to a column of mesh data which is unbounded in the Z axis.
@@ -115,14 +91,7 @@ namespace PyriteLib
             Size originalSize;
 
             // Create a clone of the source to use independent of other threads
-		    Image clonedSource;
-		    lock (sourceLock)
-		    {
-                clonedSource = (Image)source.Clone();
-		    }
-            try
-            {
-                originalSize = clonedSource.Size;
+                originalSize = source.Size();
                 Size newSize = new Size();
 
                 Trace.TraceInformation("Generating sparse texture for tile {0}", tile);
@@ -148,7 +117,7 @@ namespace PyriteLib
                 newSize.Height = NextPowerOfTwo(newSize.Height);
 
                 // Build the new bin packed and cropped texture
-                WriteNewTexture(outputPath, options.TextureScale, newSize, clonedSource, sourceRects, destinationRects, cancellationToken);
+                WriteNewTexture(outputPath, options.TextureScale, newSize, source, sourceRects, destinationRects, cancellationToken);
 
                 // Write an MTL if appropriate
                 if (options.WriteMtl)
@@ -157,12 +126,7 @@ namespace PyriteLib
                 }
 
                 // Generate the UV transform array
-                return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);
-            }
-            finally
-            {
-                clonedSource.Dispose();
-            }
+                return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);           
 		}
 
         private void WriteNewMtl(string texturePath, string outputPath)
@@ -188,33 +152,36 @@ namespace PyriteLib
             File.WriteAllText(outputPath, mtl.ToString());
         }
 
-        private static void WriteNewTexture(string outputPath, float scale, Size newSize, Image source, Rectangle[] sourceRects, Rectangle[] destinationRects, CancellationToken cancellationToken)
+        private static void WriteNewTexture(string outputPath, float scale, Size newSize, Bgr<byte>[,] source, Rectangle[] sourceRects, Rectangle[] destinationRects, CancellationToken cancellationToken)
 		{
-			using (Bitmap packed = new Bitmap(newSize.Width, newSize.Height, source.PixelFormat))
+            Bgr<byte>[,] packed = new Bgr<byte>[newSize.Width, newSize.Height];
+
+			for (int i = 0; i < sourceRects.Length; i++)
 			{
-				using (Graphics packedGraphics = Graphics.FromImage(packed))
-				{
-					for (int i = 0; i < sourceRects.Length; i++)
-					{
-                        cancellationToken.ThrowIfCancellationRequested();
-						packedGraphics.DrawImage(source, destinationRects[i], sourceRects[i], GraphicsUnit.Pixel);
-					}
-				}
+                cancellationToken.ThrowIfCancellationRequested();
 
-				// Write to disk
-				if (File.Exists(outputPath)) File.Delete(outputPath);
-				if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+                Point destinationOffset = destinationRects[i].Location;
+                Rectangle sourceArea = sourceRects[i];
 
-				if (scale != 1)
-				{
-					var scaledPacked = ResizeImage(packed, (int)(packed.Width * scale), (int)(packed.Height * scale));
-					scaledPacked.Save(outputPath, ImageFormat.Jpeg);					
-				}
-				else
-				{
-					packed.Save(outputPath, ImageFormat.Jpeg);
-				}
+                ParallelLauncher.Launch((thread) =>
+                {
+                    packed[destinationOffset.Y + thread.Y, destinationOffset.X + thread.X] = source[sourceArea.Y + thread.Y, sourceArea.X + thread.X];
+                }, sourceArea.Width, sourceArea.Height);
+            }	
+
+			// Write to disk
+			if (File.Exists(outputPath)) File.Delete(outputPath);
+			if (!Directory.Exists(Path.GetDirectoryName(outputPath))) Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+
+			if (scale != 1)
+			{
+                throw new NotImplementedException("Scaling not yet implemented in this branch.");
+			}          
+			else
+			{
+                packed.Save(outputPath);				
 			}
+			
 		}
 
 		private static RectangleTransform[] GenerateUVTransforms(Size originalSize, Size newSize, Rectangle[] sourceRects, Rectangle[] destinationRects)
@@ -416,6 +383,7 @@ namespace PyriteLib
             return rects;
 		}
 
+        /*
         public static Bitmap ResizeImage(Image image, int width, int height)
         {
             var destRect = new Rectangle(0, 0, width, height);
@@ -439,7 +407,7 @@ namespace PyriteLib
             }
 
             return destImage;
-        }
+        }     
 
         private string WriteDebugImage(Image source, string outputPath, string prefix = "error")
         {
@@ -453,7 +421,7 @@ namespace PyriteLib
             source.Save(newPath, ImageFormat.Jpeg);
 
             return filename;         
-        }
+        }       */
 
 		public static int NextPowerOfTwo(int x)
 		{

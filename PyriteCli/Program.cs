@@ -76,7 +76,8 @@ namespace PyriteCli
                         if (opt.MarkupUV)
                         {
                             Texture tex = new Texture(manager.ObjInstance);
-                            tex.MarkupTextureFaces(opt.Texture);
+                            //tex.MarkupTextureFaces(opt.Texture);
+                            throw new NotImplementedException("Markup UV not implemented in this branch.");
                         }
                         else
                         {

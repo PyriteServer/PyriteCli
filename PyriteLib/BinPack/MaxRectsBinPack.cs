@@ -9,9 +9,10 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
+using DotImaging;
 using System.Threading;
 using System.Threading.Tasks;
+using DotImaging.Primitives2D;
 
 public class MaxRectanglesBinPack
 {
