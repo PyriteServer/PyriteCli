@@ -27,8 +27,11 @@ namespace PyriteLib
 
         public Texture(Obj obj, string texturePath)
         {
+            Trace.TraceInformation("Loading image: " + texturePath);
+
             TargetObj = obj;
-            source = ImageIO.LoadColor(texturePath).ToBgr();
+            var imageBytes = File.ReadAllBytes(texturePath);
+            source = imageBytes.DecodeAsColorImage();
         }
 
         // Generates a copy of the provided texture and
@@ -106,7 +109,7 @@ namespace PyriteLib
                 // Estimate ideal bin size
                 var totalArea = sourceRects.Sum(r => r.Height * r.Width);
                 var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
-                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize, 16384, cancellationToken);
+                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize/2, 16384, cancellationToken);
 
                 // Identify the cropped size of our new texture			
                 newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
@@ -155,6 +158,8 @@ namespace PyriteLib
         private static void WriteNewTexture(string outputPath, float scale, Size newSize, Bgr<byte>[,] source, Rectangle[] sourceRects, Rectangle[] destinationRects, CancellationToken cancellationToken)
 		{
             Bgr<byte>[,] packed = new Bgr<byte>[newSize.Width, newSize.Height];
+            int sourceWidth = source.GetLength(0);
+            int sourceHeight = source.GetLength(1);
 
 			for (int i = 0; i < sourceRects.Length; i++)
 			{
@@ -163,10 +168,16 @@ namespace PyriteLib
                 Point destinationOffset = destinationRects[i].Location;
                 Rectangle sourceArea = sourceRects[i];
 
-                ParallelLauncher.Launch((thread) =>
+                for (int x = 0; x < sourceArea.Width; x++)
                 {
-                    packed[destinationOffset.Y + thread.Y, destinationOffset.X + thread.X] = source[sourceArea.Y + thread.Y, sourceArea.X + thread.X];
-                }, sourceArea.Width, sourceArea.Height);
+                    for (int y = 0; y < sourceArea.Height; y++)
+                    {                                          
+                        if ((sourceArea.Y + y) >= 0 && (sourceArea.X + x) >= 0 && (sourceArea.X + x) < sourceWidth && (sourceArea.Y + y) < sourceHeight)
+                        {
+                            packed[destinationOffset.X + x, destinationOffset.Y + y] = source[sourceArea.X + x, sourceArea.Y + y];
+                        }
+                    }
+                }
             }	
 
 			// Write to disk
@@ -175,6 +186,7 @@ namespace PyriteLib
 
 			if (scale != 1)
 			{
+                
                 throw new NotImplementedException("Scaling not yet implemented in this branch.");
 			}          
 			else

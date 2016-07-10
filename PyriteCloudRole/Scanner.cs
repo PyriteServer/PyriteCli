@@ -103,7 +103,6 @@ namespace PyriteCloudRole
                 CheckForComplete(slicingOptions, manager);
 
                 // ** Cleanup
-                slicingOptions.TextureInstance?.Dispose();
                 Trace.TraceInformation("Writing Results");
                 UploadResultData(slicingOptions);
 
@@ -112,9 +111,6 @@ namespace PyriteCloudRole
             catch (Exception ex)
             {
                 Trace.TraceError(ex.ToString());
-
-                // Release texure if we have one
-                slicingOptions?.TextureInstance?.Dispose();
 
                 // Either delete this message or make it visible again for retry
                 if (retrievedMessage.DequeueCount > 3)

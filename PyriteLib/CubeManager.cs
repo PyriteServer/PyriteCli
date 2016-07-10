@@ -107,10 +107,15 @@ namespace PyriteLib
             var cubes = Texture.GetCubeListFromTextureTile(options.TextureSliceY, options.TextureSliceX, textureTile.X, textureTile.Y, ObjInstance).ToList();
             cubes.ForEach(v =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                Trace.TraceInformation("Processing cube {0}", v);
+                cancellationToken.ThrowIfCancellationRequested();                
                 string fileOutPath = Path.Combine(outputPath, string.Format("{0}_{1}_{2}", v.X, v.Y, v.Z));
                 int vertexCount = ObjInstance.WriteSpecificCube(fileOutPath, v, options);
+
+                if (vertexCount > 0)
+                {
+                    Trace.TraceInformation("Processedcube {0} with {1} vertices", v, vertexCount);
+                }
+
                 vertexCounts.Add(v, vertexCount);
             });                          
 
@@ -127,7 +132,10 @@ namespace PyriteLib
             var transform = options.TextureInstance.GenerateTextureTile(fileOutPath, textureTile, options, cancellationToken);
 
             // Transform associated UV's
-            ObjInstance.TransformUVsForTextureTile(options, textureTile, transform, cancellationToken);      
+            if (transform.Any())
+            {
+                ObjInstance.TransformUVsForTextureTile(options, textureTile, transform, cancellationToken);
+            }
         }
 
         // Action to show incremental file loading status

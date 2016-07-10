@@ -68,7 +68,7 @@ namespace PyriteLib
                         from y in Enumerable.Range(0, size.Y)
                         select new Tuple<int, int>(x, y);
 
-            Parallel.ForEach(space, (spacePartition) =>
+            Parallel.ForEach(space, new ParallelOptions { MaxDegreeOfParallelism = 4 }, (spacePartition) =>
             {
                 Action(spacePartition.Item1, spacePartition.Item2);
             });

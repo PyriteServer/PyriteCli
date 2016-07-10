@@ -99,7 +99,7 @@ namespace PyriteCli.Tests
             Console.WriteLine("Faces Intersect Milliseconds: " + watch.ElapsedMilliseconds);
         }
 
-        [TestMethod]
+        [TestMethod][Ignore]
 		public void FindUVRectanglesTest()
 		{
 			// private static IEnumerable<IEnumerable<Face>> FindConnectedFaces(List<Face> faces)
