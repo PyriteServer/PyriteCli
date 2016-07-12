@@ -41,8 +41,8 @@ namespace PyriteLib.Types
             if (!success) throw new ArgumentException("Could not parse Z parameter as double");
 
             X = x;
-            Y = y;
-            Z = z;
+            Y = z;
+            Z = y;
         }
 
         public bool InExtent(Extent extent)

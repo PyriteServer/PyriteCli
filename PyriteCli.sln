@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FF7E6DAB-7D1B-49DF-9AE2-1C0F8CE0AF1D}"
 	ProjectSection(SolutionItems) = preProject
 		Performance1.psess = Performance1.psess
+		Performance2.psess = Performance2.psess
+		Performance3.psess = Performance3.psess
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCli", "PyriteCli\PyriteCli.csproj", "{558DDB06-CD0D-4346-96AA-4B5BEE498F04}"
@@ -14,7 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteLib", "PyriteLib\Pyri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCli.Tests", "PyriteCli.Tests\PyriteCli.Tests.csproj", "{F8C1E3D7-84BD-4465-B897-4BF4CA3BD6C3}"
 EndProject
-Project("{BB40F520-413E-3EBA-ABD4-2177801094F0}") = "PyriteCloudWorker", "PyriteCloudWorker\PyriteCloudWorker.ccproj", "{3B60F4A4-7F87-4419-8E11-CC9D4CAA270C}"
+Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "PyriteCloudWorker", "PyriteCloudWorker\PyriteCloudWorker.ccproj", "{3B60F4A4-7F87-4419-8E11-CC9D4CAA270C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCloudRole", "PyriteCloudRole\PyriteCloudRole.csproj", "{A3924EF2-37C3-4188-B395-D78EFAE3C2AD}"
 EndProject
@@ -27,6 +29,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyriteCloudAdmin.Tests", "PyriteCloudAdmin.Tests\PyriteCloudAdmin.Tests.csproj", "{DE917998-AE45-4018-B250-FA7FBFB51E7F}"
 EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
 		Debug|x64 = Debug|x64

@@ -109,7 +109,7 @@ namespace PyriteLib
                 // Estimate ideal bin size
                 var totalArea = sourceRects.Sum(r => r.Height * r.Width);
                 var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
-                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize/2, 16384, cancellationToken);
+                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize, 16384, cancellationToken);
 
                 // Identify the cropped size of our new texture			
                 newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);

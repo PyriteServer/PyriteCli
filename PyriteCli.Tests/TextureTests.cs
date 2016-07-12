@@ -91,7 +91,7 @@ namespace PyriteCli.Tests
             List<Face> faces = Texture.GetFaceListFromTextureTile(2, 2, 0, 1, texture.TargetObj).ToList();
 
             Stopwatch watch = Stopwatch.StartNew();
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 bool result = (bool)textureType.InvokeStatic("FacesIntersect", new Object[] { faces[i % 1000], faces });
             }
