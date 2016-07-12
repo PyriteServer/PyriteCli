@@ -70,6 +70,10 @@ namespace PyriteCliCommon
             Description = "Generate various additional debug data during error states")]
         public bool Debug { get; set; }
 
+        [NamedArgument("invertyz", Action = ParseAction.StoreTrue,
+            Description = "")]
+        public bool InvertYZ { get; set; }
+
         [PositionalArgument(0, MetaVar = "OUT",
             Description = "Output folder")]
         public string OutputPath { get; set; }
@@ -90,6 +94,7 @@ namespace PyriteCliCommon
             TextureYSize = 4;
             ForceCubical = false;
             Debug = false;
+            InvertYZ = false;
         }
     }
 

@@ -58,7 +58,7 @@ namespace PyriteCli
                         {
                             OverrideMtl = opt.MtlOverride,
                             GenerateEbo = opt.Ebo,
-                            GenerateOpenCtm =  opt.OpenCtm,
+                            GenerateOpenCtm = opt.OpenCtm,
                             Debug = opt.Debug,
                             GenerateObj = opt.Obj,
                             Texture = opt.Texture,
@@ -68,7 +68,8 @@ namespace PyriteCli
                             TextureSliceX = opt.TextureXSize,
                             TextureSliceY = opt.TextureYSize,
                             ForceCubicalCubes = opt.ForceCubical,
-                            CubeGrid = new Vector3 { X = opt.XSize, Y = opt.YSize, Z = opt.ZSize }
+                            CubeGrid = new Vector3 { X = opt.XSize, Y = opt.YSize, Z = opt.ZSize },
+                            InvertYZ = opt.InvertYZ
                         };
 
                         CubeManager manager = new CubeManager(options);

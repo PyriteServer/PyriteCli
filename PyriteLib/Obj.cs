@@ -44,7 +44,7 @@ namespace PyriteLib
                                 
             foreach (string line in input)
             {
-                processLine(line);
+                processLine(line, options);
 
                 // Handle a callback for a status update
                 linesProcessed++;
@@ -809,7 +809,7 @@ namespace PyriteLib
         /// Parses and loads a line from an OBJ file.
         /// Currently only supports V, VT, F and MTLLIB prefixes
         /// </summary>		
-        private void processLine(string line)
+        private void processLine(string line, SlicingOptions options)
         {
             string[] parts = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -823,6 +823,14 @@ namespace PyriteLib
                     case "v":
                         Vertex v = new Vertex();
                         v.LoadFromStringArray(parts);
+
+                        if (options.InvertYZ)
+                        {
+                            double temp = v.Y;
+                            v.Y = v.Z;
+                            v.Z = temp;  
+                        }
+
                         VertexList.Add(v);
                         v.Index = VertexList.Count();
                         break;

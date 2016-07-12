@@ -24,6 +24,7 @@ namespace PyriteLib
         public Texture TextureInstance { get; set; }
         public Dictionary<Vector2, RectangleTransform[]> UVTransforms { get; set; }
         public Vector3 CubeGrid { get; set; }
+        public bool InvertYZ { get; set; }
 
         // Support for cloud processing
         public string CloudObjPath { get; set; }

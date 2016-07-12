@@ -109,7 +109,7 @@ namespace PyriteLib
                 // Estimate ideal bin size
                 var totalArea = sourceRects.Sum(r => r.Height * r.Width);
                 var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
-                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize, 16384, cancellationToken);
+                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize/2, 16384, cancellationToken);
 
                 // Identify the cropped size of our new texture			
                 newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
@@ -158,8 +158,8 @@ namespace PyriteLib
         private static void WriteNewTexture(string outputPath, float scale, Size newSize, Bgr<byte>[,] source, Rectangle[] sourceRects, Rectangle[] destinationRects, CancellationToken cancellationToken)
 		{
             Bgr<byte>[,] packed = new Bgr<byte>[newSize.Width, newSize.Height];
-            int sourceWidth = source.GetLength(0);
-            int sourceHeight = source.GetLength(1);
+            int sourceWidth = source.GetLength(1);
+            int sourceHeight = source.GetLength(0);
 
 			for (int i = 0; i < sourceRects.Length; i++)
 			{
@@ -171,11 +171,18 @@ namespace PyriteLib
                 for (int x = 0; x < sourceArea.Width; x++)
                 {
                     for (int y = 0; y < sourceArea.Height; y++)
-                    {                                          
-                        if ((sourceArea.Y + y) >= 0 && (sourceArea.X + x) >= 0 && (sourceArea.X + x) < sourceWidth && (sourceArea.Y + y) < sourceHeight)
+                    {
+                        if ((sourceArea.Y + y) >= 0 && 
+                            (sourceArea.X + x) >= 0 && 
+                            (sourceArea.X + x) < sourceHeight && 
+                            (sourceArea.Y + y) < sourceWidth &&
+                            (destinationOffset.Y + y) >= 0 &&
+                            (destinationOffset.X + x) >= 0 &&
+                            (destinationOffset.X + x) < newSize.Height &&
+                            (destinationOffset.Y + y) < newSize.Width)
                         {
-                            packed[destinationOffset.X + x, destinationOffset.Y + y] = source[sourceArea.X + x, sourceArea.Y + y];
-                        }
+                            packed[destinationOffset.Y + y, destinationOffset.X + x] = source[sourceArea.Y + y, sourceArea.X + x];
+                        }                        
                     }
                 }
             }	
