@@ -157,7 +157,7 @@ namespace PyriteLib
 
         private static void WriteNewTexture(string outputPath, float scale, Size newSize, Bgr<byte>[,] source, Rectangle[] sourceRects, Rectangle[] destinationRects, CancellationToken cancellationToken)
 		{
-            Bgr<byte>[,] packed = new Bgr<byte>[newSize.Width, newSize.Height];
+            Bgr<byte>[,] packed = new Bgr<byte>[newSize.Height, newSize.Width];
             int sourceWidth = source.GetLength(1);
             int sourceHeight = source.GetLength(0);
 
@@ -174,8 +174,8 @@ namespace PyriteLib
                     {
                         if ((sourceArea.Y + y) >= 0 && 
                             (sourceArea.X + x) >= 0 && 
-                            (sourceArea.X + x) < sourceHeight && 
-                            (sourceArea.Y + y) < sourceWidth &&
+                            (sourceArea.X + x) < sourceWidth && 
+                            (sourceArea.Y + y) < sourceHeight &&
                             (destinationOffset.Y + y) >= 0 &&
                             (destinationOffset.X + x) >= 0 &&
                             (destinationOffset.X + x) < newSize.Height &&

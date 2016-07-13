@@ -828,7 +828,7 @@ namespace PyriteLib
                         {
                             double temp = v.Y;
                             v.Y = v.Z;
-                            v.Z = temp;  
+                            v.Z = -temp;  
                         }
 
                         VertexList.Add(v);
