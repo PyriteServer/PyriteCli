@@ -28,13 +28,9 @@ namespace PyriteLib
             for(int key=0;key < objects.Count(); key++)
             {
                 var obj = objects[objects.Keys[key]];
-                var result = MaxVertices(obj, 40000);
-                Trace.TraceInformation("{0} [{4}] {1} vertices.  Recommended {2}x{2}x{2}, {3} average vertices per cube", key, objects.Keys[key], result.Item1, result.Item2, obj.Title);
+                var result = MaxVertices(obj, 60000);
+                Trace.TraceInformation("{0} [{4}] {1} vertices.  Recommended {2}x{2}x{2}, {3} max vert", key, objects.Keys[key], result.Item1, result.Item2, obj.Title);
             }
-
-            // Valid levels
-
-
 
         }
 
