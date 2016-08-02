@@ -153,7 +153,8 @@ namespace PyriteCli.Tests
 				TextureSliceY = 2,
                 ForceCubicalCubes = false,
                 Obj = "model.obj",
-                CubeGrid = new Vector3(2, 2, 2)
+                CubeGrid = new Vector3(2, 2, 2),
+                Wizard = false
             };
 
             CubeManager manager = new CubeManager(options);

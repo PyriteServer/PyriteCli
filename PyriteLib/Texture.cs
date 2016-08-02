@@ -178,8 +178,8 @@ namespace PyriteLib
                             (sourceArea.Y + y) < sourceHeight &&
                             (destinationOffset.Y + y) >= 0 &&
                             (destinationOffset.X + x) >= 0 &&
-                            (destinationOffset.X + x) < newSize.Height &&
-                            (destinationOffset.Y + y) < newSize.Width)
+                            (destinationOffset.X + x) < newSize.Width &&
+                            (destinationOffset.Y + y) < newSize.Height)
                         {
                             packed[destinationOffset.Y + y, destinationOffset.X + x] = source[sourceArea.Y + y, sourceArea.X + x];
                         }                        

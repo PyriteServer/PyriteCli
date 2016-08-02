@@ -74,6 +74,11 @@ namespace PyriteCliCommon
             Description = "")]
         public bool InvertYZ { get; set; }
 
+        [NamedArgument("wizard", Action = ParseAction.StoreTrue,
+            Description = "Take a list of OBJ files and make some suggestions")]
+        public bool Wizard { get; set; }
+
+
         [PositionalArgument(0, MetaVar = "OUT",
             Description = "Output folder")]
         public string OutputPath { get; set; }
@@ -95,6 +100,7 @@ namespace PyriteCliCommon
             ForceCubical = false;
             Debug = false;
             InvertYZ = false;
+            Wizard = false;
         }
     }
 

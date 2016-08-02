@@ -81,6 +81,7 @@
     <Compile Include="Types\IType.cs" />
     <Compile Include="Types\TextureVertex.cs" />
     <Compile Include="Types\Vertex.cs" />
+    <Compile Include="Wizard.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

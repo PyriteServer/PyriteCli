@@ -22,6 +22,8 @@ namespace PyriteLib
         public Extent Size { get; set; }
         public Extent CubicalSize { get; set; }
 
+        public string Title { get; set; }
+
         private string _mtl;
         private bool _verticesRequireReset;
 
@@ -57,12 +59,12 @@ namespace PyriteLib
 
             updateSize();
 
-            populateMatrix(FaceList, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size);
+            populateMatrix(FaceList, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size, options);
 
             _verticesRequireReset = false;                    
         }
 
-        private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size)
+        private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size, SlicingOptions options)
         {
             Trace.TraceInformation("Partitioning Faces.");
 
@@ -111,9 +113,11 @@ namespace PyriteLib
             }
 
             // Crop all the cubes
-            SpatialUtilities.EnumerateSpace(xLength, yLength, zLength,
-                (x, y, z) => CropCube(matrix[x,y,z], x, y, z, matrix, size));
-            
+            if (!options.Wizard)
+            {
+                SpatialUtilities.EnumerateSpace(xLength, yLength, zLength,
+                    (x, y, z) => CropCube(matrix[x, y, z], x, y, z, matrix, size));
+            }
         }
 
 
@@ -840,10 +844,13 @@ namespace PyriteLib
                         FaceList.Add(f);
                         break;
                     case "vt":
-                        TextureVertex vt = new TextureVertex();
-                        vt.LoadFromStringArray(parts);
-                        TextureList.Add(vt);
-                        vt.Index = TextureList.Count();
+                        if (!options.Wizard)
+                        {
+                            TextureVertex vt = new TextureVertex();
+                            vt.LoadFromStringArray(parts);
+                            TextureList.Add(vt);
+                            vt.Index = TextureList.Count();
+                        }
                         break;
 
                 }

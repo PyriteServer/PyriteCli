@@ -34,6 +34,8 @@ namespace PyriteLib
         public Vector2 TextureTile { get; set; }
         public string SetKey { get; set; }
 
+        public bool Wizard { get; set; }
+
         public bool RequiresTextureProcessing()
         {
             return !string.IsNullOrEmpty(Texture) && (TextureSliceX + TextureSliceY) > 2;
