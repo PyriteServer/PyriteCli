@@ -43,7 +43,7 @@ namespace PyriteLib
             var input = File.ReadLines(path);
 
             int linesProcessed = 0;
-                                
+
             foreach (string line in input)
             {
                 processLine(line, options);
@@ -61,7 +61,7 @@ namespace PyriteLib
 
             populateMatrix(FaceList, FaceMatrix, options.ForceCubicalCubes ? CubicalSize : Size, options);
 
-            _verticesRequireReset = false;                    
+            _verticesRequireReset = false;
         }
 
         private void populateMatrix(List<Face> faces, List<Face>[,,] matrix, Extent size, SlicingOptions options)
@@ -83,7 +83,7 @@ namespace PyriteLib
             double zRatio = zLength / (size.ZSize);
 
             // Initialize matrix
-            SpatialUtilities.EnumerateSpace(xLength, yLength, zLength, 
+            SpatialUtilities.EnumerateSpace(xLength, yLength, zLength,
                 (x, y, z) => matrix[x, y, z] = new List<Face>());
 
             foreach (var face in faces)
@@ -91,7 +91,7 @@ namespace PyriteLib
                 List<int> used = new List<int>();
 
                 for (int i = 0; i < 3; i++)
-                {                   
+                {
                     Vertex vertex = VertexList[face.VertexIndexList[i] - 1];
 
                     int x = (int)Math.Floor((vertex.X + xOffset) * xRatio);
@@ -131,11 +131,11 @@ namespace PyriteLib
             Trace.TraceInformation("Transforming {0} UV points across {1} extents", TextureList.Count, options.UVTransforms.Keys.Count);
             foreach (var uvTransform in options.UVTransforms)
             {
-                TransformUVsForTextureTile(options ,uvTransform.Key, uvTransform.Value, new CancellationToken());
+                TransformUVsForTextureTile(options, uvTransform.Key, uvTransform.Value, new CancellationToken());
             }
         }
 
-        public void TransformUVsForTextureTile(SlicingOptions options, Vector2 textureTile, RectangleTransform[] uvTransforms, CancellationToken cancellationToken) 
+        public void TransformUVsForTextureTile(SlicingOptions options, Vector2 textureTile, RectangleTransform[] uvTransforms, CancellationToken cancellationToken)
         {
             Trace.TraceInformation("Transforming UV points for texture tile {0},{1}", textureTile.X, textureTile.Y);
 
@@ -143,12 +143,12 @@ namespace PyriteLib
 
             cancellationToken.ThrowIfCancellationRequested();
             var faces = Texture.GetFaceListFromTextureTile(
-                options.TextureSliceY, 
+                options.TextureSliceY,
                 options.TextureSliceX,
                 textureTile.X,
-                textureTile.Y, 
+                textureTile.Y,
                 this);
-            
+
             var uvIndices = faces.AsParallel().SelectMany(f => f.TextureVertexIndexList).WithCancellation(cancellationToken).Distinct();
             var uvs = uvIndices.Select(i => TextureList[i - 1]).ToList();
 
@@ -177,7 +177,7 @@ namespace PyriteLib
                         }
                         else
                         {
-                            uv.Transform(transform);     
+                            uv.Transform(transform);
                             transformUVCount++;
 
                         }
@@ -188,7 +188,7 @@ namespace PyriteLib
                     failedUVCount++;
                 }
             }
-            
+
             Trace.TraceInformation("UV Transform results ({3},{4}): {0} success, {1} new, {2} failed.", transformUVCount, newUVCount, failedUVCount, textureTile.X, textureTile.Y);
 
             // Write out a marked up image file showing where lost UV's occured
@@ -196,7 +196,7 @@ namespace PyriteLib
             {
                 var notTransformedUVs = uvs.Where(u => !u.Transformed).ToArray();
                 var relevantTransforms = uvTransforms;
-                    //options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs, textureTile);
+                //options.TextureInstance.MarkupTextureTransforms(options.Texture, relevantTransforms, notTransformedUVs, textureTile);
             }
         }
 
@@ -232,7 +232,7 @@ namespace PyriteLib
             chunkFaceList = FaceMatrix[cube.X, cube.Y, cube.Z];
 
             if (!chunkFaceList.Any())
-                return 0;            
+                return 0;
 
             Trace.TraceInformation("{0} faces", chunkFaceList.Count);
 
@@ -254,7 +254,7 @@ namespace PyriteLib
             {
                 WriteOpenCtmFormattedFile(openCtmPath, chunkFaceList, tile);
             }
-            
+
             return chunkFaceList.Count;
         }
 
@@ -266,7 +266,7 @@ namespace PyriteLib
 
             cubeHeight = size.YSize / matrix.GetLength(1);
             cubeWidth = size.XSize / matrix.GetLength(0);
-            cubeDepth = size.ZSize / matrix.GetLength(2);       
+            cubeDepth = size.ZSize / matrix.GetLength(2);
 
             double yOffset = cubeHeight * cubeY;
             double xOffset = cubeWidth * cubeX;
@@ -285,131 +285,236 @@ namespace PyriteLib
             Dictionary<Face, List<Vertex>> facesToRepair = new Dictionary<Face, List<Vertex>>();
 
             // Enumerate vertices for ones crossing bounds
-            foreach(var face in chunkFaceList)
+            foreach (var face in chunkFaceList)
             {
                 var vertices = FindOutOfBoundVertices(face, cubeExtent);
 
                 if (vertices.Any())
                 {
                     facesToRepair.Add(face, vertices);
-                }            
+                }
             }
 
-            foreach(var face in facesToRepair.Keys)
+            foreach (var face in facesToRepair.Keys)
             {
                 // Type 1 - yields two triangles - 2 of the 3 vertices are in-bounds.
                 if (facesToRepair[face].Count == 1)
                 {
-                    Vertex croppedVertex = facesToRepair[face].First();
-                    Vertex[] newVertices = new Vertex[2];
-
-                    // Find the vertices we are keeping
-                    var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);                    
-                    Vertex[] homeVertices = allVerts.Except(new List<Vertex> { croppedVertex }).ToArray();
-
-                    // First triangle, use existing face
-                    var intersectionA = SpatialUtilities.CheckLineBox(
-                                            cubeExtent.MinCorner,
-                                            cubeExtent.MaxCorner,
-                                            new Vector3D(croppedVertex),
-                                            new Vector3D(homeVertices[0]));
-
-                    var intersectionB = SpatialUtilities.CheckLineBox(
-                                            cubeExtent.MinCorner,
-                                            cubeExtent.MaxCorner,
-                                            new Vector3D(croppedVertex),
-                                            new Vector3D(homeVertices[1]));
-
-                    if (intersectionA != null && intersectionB != null)
-                    {
-                        // Clone the face before we edit it, to use for the new face
-                        var newFaceA = face.Clone();
-                        var newFaceB = face.Clone();
-
-                        // Update the UVs before the vertices so we can key off the original vertices
-                        // New UV for NewVertexA / IntersectionA, which is a new point between homeVertices[0] and croppedVertex
-                        var resultA = CalculateNewUV(face, croppedVertex, homeVertices[0], intersectionA);
-                        newFaceA.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
-
-                        // New UV for NewVertexB / IntersectionB, which is a new point between homeVertices[1] and croppedVertex
-                        var resultB = CalculateNewUV(newFaceB, croppedVertex, homeVertices[1], intersectionB);
-                        newFaceB.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
-
-                        // Now update the vertices
-                        // Add a new vertex and update the existing face
-                        int length = VertexList.Count();
-                        var NewVertexA = new Vertex { Index = length + 1, X = intersectionA.X, Y = intersectionA.Y, Z = intersectionA.Z };
-                        VertexList.Add(NewVertexA);
-                        newFaceA.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
-
-                        // Replace original face with newFaceA
-                        chunkFaceList.Add(newFaceA);
-                        chunkFaceList.Remove(face);
-
-                        // Add another new vertex for the net-new face
-                        length++;
-                        var NewVertexB = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
-                        VertexList.Add(NewVertexB);
-
-                        // Add the net-new face
-                        // TODO: Almost certainly leaving the face and vertex list incorrect for future cubes
-                        // Won't really know until I do a run and see what is broken...
-                        chunkFaceList.Add(newFaceB);
-                        newFaceB.UpdateVertexIndex(homeVertices[0].Index, length, false);
-                        newFaceB.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
-                    }
+                    RepairType1(chunkFaceList, cubeExtent, facesToRepair, face);
 
                 }
                 // Type 2 - yields single triangle - 1 of the 3 vertices are in-bounds.
                 else if (facesToRepair[face].Count == 2)
                 {
-                    Vertex[] croppedVertices = facesToRepair[face].ToArray();
-                    Vertex[] newVertices = new Vertex[2];
-                                        
-                    // Find the vertex we are keeping
-                    var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);
-                    Vertex homeVertex = allVerts.Except(croppedVertices).First();
-
-                    // Create new face
-                    bool doReplacement = false;
-                    var newFace = face.Clone();
-
-                    for (int i = 0; i < 2; i++)
-                    {
-                        var croppedVertex = new Vector3D(croppedVertices[i]);
-
-                        // Figure out where this line intersects the cube
-                        var intersection = SpatialUtilities.CheckLineBox(
-                                                cubeExtent.MinCorner,
-                                                cubeExtent.MaxCorner,                                                
-                                                new Vector3D(croppedVertices[i]),
-                                                new Vector3D(homeVertex));
-
-                        if (intersection != null)
-                        {
-                            doReplacement = true;
-
-                            var result = CalculateNewUV(face, croppedVertices[i], homeVertex, intersection);
-
-                            newFace.UpdateTextureVertexIndex(result.OldIndex, result.NewIndex, false);
-
-                            // Add the new vertex
-                            int length = VertexList.Count();
-                            VertexList.Add(new Vertex { Index = length + 1, X = intersection.X, Y = intersection.Y, Z = intersection.Z });
-
-                            // Update the new face vertex
-                            newFace.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
-                        }
-                    }
-
-                    if (doReplacement)
-                    {
-                        chunkFaceList.Add(newFace);
-                        chunkFaceList.Remove(face);
-                    }
-                }               
+                    RepairType2(chunkFaceList, cubeExtent, facesToRepair, face);
+                }
             }
 
+        }
+
+        private void RepairType2(List<Face> chunkFaceList, Extent cubeExtent, Dictionary<Face, List<Vertex>> facesToRepair, Face face)
+        {
+            Vertex[] croppedVertices = facesToRepair[face].ToArray();
+
+            // Find the vertex we are keeping
+            var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);
+            Vertex homeVertex = allVerts.Except(croppedVertices).First();
+
+            // Calculate the two intersections with cube edges
+            Vector3D[] intersections = new Vector3D[2];
+
+            intersections[0] = SpatialUtilities.CheckLineBox(
+                                cubeExtent.MinCorner,
+                                cubeExtent.MaxCorner,
+                                new Vector3D(croppedVertices[0]),
+                                new Vector3D(homeVertex));
+            intersections[1] = SpatialUtilities.CheckLineBox(
+                                cubeExtent.MinCorner,
+                                cubeExtent.MaxCorner,
+                                new Vector3D(croppedVertices[1]),
+                                new Vector3D(homeVertex));
+
+            // Find out if we are 
+            // Type 2.1 (both line segments originating from home vertex intersect the same edge) or
+            // Type 2.2 (line segments intersect adjacent edges and vertex of adjacent edges is inside face) or
+            // Type 2.3 (line segments intersect adjacent edges but vertex of adjacent edges is not inside face)
+
+            // Are intersections on the same edge?
+            if (intersections[0].X == intersections[1].X &&
+                intersections[0].Y == intersections[1].Y ||
+                intersections[0].X == intersections[1].X &&
+                intersections[0].Z == intersections[1].Z ||
+                intersections[0].Z == intersections[1].Z &&
+                intersections[0].Y == intersections[1].Y)
+            {                
+                RepairType2_1(chunkFaceList, face, croppedVertices, homeVertex, intersections);
+            }
+            else
+            {
+                // We differentiate between 2.2 and 2.3 by checking if the cube corner is inside the face or not.
+                // Corner means the line that forms the intersection of the two planes we intersected with our face.
+                // RepairType2_2(chunkFaceList, cubeExtent, face, croppedVertices, homeVertex, intersections);
+            }
+        }
+
+        private void RepairType2_2(List<Face> chunkFaceList, Extent cubeExtent, Face face, Vertex[] croppedVertices, Vertex homeVertex, Vector3D[] intersections)
+        {
+
+            // First triangle, use existing face
+            var intersectionA = SpatialUtilities.CheckLineBox(
+                                    cubeExtent.MinCorner,
+                                    cubeExtent.MaxCorner,
+                                    new Vector3D(croppedVertices[0]),
+                                    new Vector3D(homeVertex));
+
+            var intersectionB = SpatialUtilities.CheckLineBox(
+                                    cubeExtent.MinCorner,
+                                    cubeExtent.MaxCorner,
+                                    new Vector3D(croppedVertices[1]),
+                                    new Vector3D(homeVertex));
+
+            if (intersectionA != null && intersectionB != null)
+            {
+                // Clone the face before we edit it, to use for the new face
+                var newFaceA = face.Clone();                
+
+                // Update the UVs before the vertices so we can key off the original vertices
+                // New UV for NewVertexA / IntersectionA, which is a new point between homeVertices[0] and croppedVertex
+                var resultA = CalculateNewUV(face, croppedVertices[0], homeVertex, intersectionA);
+                newFaceA.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
+
+                // Now update the vertices
+                // Add a new vertex and update the existing face
+                int length = VertexList.Count();
+                var NewVertexA = new Vertex { Index = length + 1, X = intersectionA.X, Y = intersectionA.Y, Z = intersectionA.Z };
+                VertexList.Add(NewVertexA);
+                newFaceA.UpdateVertexIndex(croppedVertices[0].Index, length + 1, false);
+
+                length++;
+                var NewVertexB = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
+                VertexList.Add(NewVertexB);
+                newFaceA.UpdateVertexIndex(croppedVertices[1].Index, length + 1, false);
+
+                // Replace original face with newFaceA
+                chunkFaceList.Add(newFaceA);
+                chunkFaceList.Remove(face);
+
+                // Add another new vertex for the net-new face
+                length++;
+                var NewVertexC = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
+                VertexList.Add(NewVertexC);
+
+                // Create the net-new face
+                var newFaceB = face.Clone();
+
+                // New UV for NewVertexB / IntersectionB, which is a new point between homeVertices[1] and croppedVertex
+                var resultB = CalculateNewUV(newFaceB, NewVertexC, homeVertex, intersectionB);
+                newFaceB.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
+
+                // Add the new face
+                chunkFaceList.Add(newFaceB);
+                newFaceB.UpdateVertexIndex(homeVertex.Index, NewVertexC.Index, false);
+            }
+        }
+
+        private void RepairType2_1(List<Face> chunkFaceList, Face face, Vertex[] croppedVertices, Vertex homeVertex, Vector3D[] intersections)
+        {
+
+            // Create new face
+            bool doReplacement = false;
+            var newFace = face.Clone();
+
+            for (int i = 0; i < 2; i++)
+            {
+                var croppedVertex = new Vector3D(croppedVertices[i]);
+
+                // Figure out where this line intersects the cube
+                var intersection = intersections[i];
+
+                if (intersection != null)
+                {
+                    doReplacement = true;
+
+                    var result = CalculateNewUV(face, croppedVertices[i], homeVertex, intersection);
+
+                    newFace.UpdateTextureVertexIndex(result.OldIndex, result.NewIndex, false);
+
+                    // Add the new vertex
+                    int length = VertexList.Count();
+                    VertexList.Add(new Vertex { Index = length + 1, X = intersection.X, Y = intersection.Y, Z = intersection.Z });
+
+                    // Update the new face vertex
+                    newFace.UpdateVertexIndex(croppedVertices[i].Index, length + 1, false);
+                }
+            }
+
+            if (doReplacement)
+            {
+                chunkFaceList.Add(newFace);
+                chunkFaceList.Remove(face);
+            }
+        }
+
+        private void RepairType1(List<Face> chunkFaceList, Extent cubeExtent, Dictionary<Face, List<Vertex>> facesToRepair, Face face)
+        {
+            Vertex croppedVertex = facesToRepair[face].First();
+            Vertex[] newVertices = new Vertex[2];
+
+            // Find the vertices we are keeping
+            var allVerts = face.VertexIndexList.Select(i => VertexList[i - 1]);
+            Vertex[] homeVertices = allVerts.Except(new List<Vertex> { croppedVertex }).ToArray();
+
+            // First triangle, use existing face
+            var intersectionA = SpatialUtilities.CheckLineBox(
+                                    cubeExtent.MinCorner,
+                                    cubeExtent.MaxCorner,
+                                    new Vector3D(croppedVertex),
+                                    new Vector3D(homeVertices[0]));
+
+            var intersectionB = SpatialUtilities.CheckLineBox(
+                                    cubeExtent.MinCorner,
+                                    cubeExtent.MaxCorner,
+                                    new Vector3D(croppedVertex),
+                                    new Vector3D(homeVertices[1]));
+
+            if (intersectionA != null && intersectionB != null)
+            {
+                // Clone the face before we edit it, to use for the new face
+                var newFaceA = face.Clone();
+                var newFaceB = face.Clone();
+
+                // Update the UVs before the vertices so we can key off the original vertices
+                // New UV for NewVertexA / IntersectionA, which is a new point between homeVertices[0] and croppedVertex
+                var resultA = CalculateNewUV(face, croppedVertex, homeVertices[0], intersectionA);
+                newFaceA.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
+
+                // New UV for NewVertexB / IntersectionB, which is a new point between homeVertices[1] and croppedVertex
+                var resultB = CalculateNewUV(newFaceB, croppedVertex, homeVertices[1], intersectionB);
+                newFaceB.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
+
+                // Now update the vertices
+                // Add a new vertex and update the existing face
+                int length = VertexList.Count();
+                var NewVertexA = new Vertex { Index = length + 1, X = intersectionA.X, Y = intersectionA.Y, Z = intersectionA.Z };
+                VertexList.Add(NewVertexA);
+                newFaceA.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+
+                // Replace original face with newFaceA
+                chunkFaceList.Add(newFaceA);
+                chunkFaceList.Remove(face);
+
+                // Add another new vertex for the net-new face
+                length++;
+                var NewVertexB = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
+                VertexList.Add(NewVertexB);
+
+                // Add the net-new face
+                // TODO: Almost certainly leaving the face and vertex list incorrect for future cubes
+                // Won't really know until I do a run and see what is broken...
+                chunkFaceList.Add(newFaceB);
+                newFaceB.UpdateVertexIndex(homeVertices[0].Index, length, false);
+                newFaceB.UpdateVertexIndex(croppedVertex.Index, length + 1, false);
+            }
         }
 
         class CalculateNewUVResult

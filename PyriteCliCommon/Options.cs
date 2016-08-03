@@ -35,11 +35,11 @@ namespace PyriteCliCommon
         public float ScaleTexture { get; set; }
 
         [NamedArgument('m', "mtl", Action = ParseAction.Store,
-            Description = "Override the MTL field in output obj files. e.g. -z model.mtl")]
+            Description = "Override the MTL field in output obj files. e.g. -m model.mtl")]
         public string MtlOverride { get; set; }
 
         [NamedArgument('t', "texture", Action = ParseAction.Store,
-            Description = "Include a texture to partition during cube slicing. Will rewrite UV's in output files. Requires -tx -ty parameters.")]
+            Description = "Include a texture to partition during cube slicing. Will rewrite UV's in output files. Requires -u -v parameters.")]
         public string Texture { get; set; }
 
         [NamedArgument('o', "obj", Action = ParseAction.StoreTrue,
@@ -95,8 +95,8 @@ namespace PyriteCliCommon
             YSize = 2;
             ZSize = 2;
             ScaleTexture = 1;
-            TextureXSize = 4;
-            TextureYSize = 4;
+            TextureXSize = 1;
+            TextureYSize = 1;
             ForceCubical = false;
             Debug = false;
             InvertYZ = false;
