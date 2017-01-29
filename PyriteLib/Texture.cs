@@ -18,7 +18,6 @@ namespace PyriteLib
 
         private Bgr<byte>[,] source;
         private object sourceLock = new object();
-        private bool disposed = false;
 
         public Texture(Obj obj)
 		{
@@ -94,43 +93,69 @@ namespace PyriteLib
             Size originalSize;
 
             // Create a clone of the source to use independent of other threads
-                originalSize = source.Size();
-                Size newSize = new Size();
+            originalSize = source.Size();
+            Size newSize = new Size();
 
-                Trace.TraceInformation("Generating sparse texture for tile {0}", tile);
+            Trace.TraceInformation("Generating sparse texture for tile {0}", tile);
 
-                // Identify blob rectangles
-                var groupedFaces = FindConnectedFaces(chunkFaceList, cancellationToken);
-                var uvRects = FindUVRectangles(groupedFaces);
-                Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, originalSize, 3);
+            // Identify blob rectangles
+            var groupedFaces = FindConnectedFaces(chunkFaceList, cancellationToken);
+            var uvRects = FindUVRectangles(groupedFaces);
+            Rectangle[] sourceRects = TransformUVRectToBitmapRect(uvRects, originalSize, 3);
 
+            //******** test finding duplicates *************
+            FindDuplicateWedges(sourceRects);
 
-                // Bin pack rects, growing to a maximum 16384.
-                // Estimate ideal bin size
-                var totalArea = sourceRects.Sum(r => r.Height * r.Width);
-                var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
-                Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize/2, 16384, cancellationToken);
+            // Bin pack rects, growing to a maximum 16384.
+            // Estimate ideal bin size
+            var totalArea = sourceRects.Sum(r => r.Height * r.Width);
+            var startingSize = NextPowerOfTwo((int)Math.Sqrt(totalArea));
+            Rectangle[] destinationRects = PackTextures(sourceRects, startingSize, startingSize/2, 16384, cancellationToken);
 
-                // Identify the cropped size of our new texture			
-                newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
-                newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
+            // Identify the cropped size of our new texture			
+            newSize.Width = destinationRects.Max<Rectangle, int>(r => r.X + r.Width);
+            newSize.Height = destinationRects.Max<Rectangle, int>(r => r.Y + r.Height);
 
-                // Round new texture size up to nearest power of 2
-                newSize.Width = NextPowerOfTwo(newSize.Width);
-                newSize.Height = NextPowerOfTwo(newSize.Height);
+            // Round new texture size up to nearest power of 2
+            newSize.Width = NextPowerOfTwo(newSize.Width);
+            newSize.Height = NextPowerOfTwo(newSize.Height);
 
-                // Build the new bin packed and cropped texture
-                WriteNewTexture(outputPath, options.TextureScale, newSize, source, sourceRects, destinationRects, cancellationToken);
+            // Build the new bin packed and cropped texture
+            WriteNewTexture(outputPath, options.TextureScale, newSize, source, sourceRects, destinationRects, cancellationToken);
 
-                // Write an MTL if appropriate
-                if (options.WriteMtl)
-                {
-                    WriteNewMtl(outputPath, Path.ChangeExtension(outputPath, "mtl"));
-                }
+            // Write an MTL if appropriate
+            if (options.WriteMtl)
+            {
+                WriteNewMtl(outputPath, Path.ChangeExtension(outputPath, "mtl"));
+            }
 
-                // Generate the UV transform array
-                return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);           
+            // Generate the UV transform array
+            return GenerateUVTransforms(originalSize, newSize, sourceRects, destinationRects);           
 		}
+
+        private void FindDuplicateWedges(Rectangle[] sourceRects)
+        {
+            Trace.TraceInformation("Find Duplicate Wedges: " + sourceRects.Length + " items");
+
+            int sizeMatch = 0;
+
+            for (int si = 0; si < sourceRects.Length; si ++)
+            {
+                for (int di = si + 1; di < sourceRects.Length; di++)
+                {
+                    var sourceArea = sourceRects[si];
+                    var destArea = sourceRects[di];
+
+                    if (sourceArea.Size.Equals(destArea.Size))
+                    {
+                        sizeMatch++;
+                    }
+                }
+                  
+            }
+
+            Trace.TraceInformation("Size Match: " + sizeMatch);
+        }
 
         private void WriteNewMtl(string texturePath, string outputPath)
         {

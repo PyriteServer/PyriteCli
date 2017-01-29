@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="BinPack\MaxRectsBinPack.cs" />
     <Compile Include="ImageTile.cs" />
+    <Compile Include="LineSegment.cs" />
     <Compile Include="RectangleTransform.cs" />
     <Compile Include="SerializationUtilties.cs" />
     <Compile Include="SlicingOptions.cs" />

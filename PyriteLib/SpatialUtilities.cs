@@ -74,6 +74,24 @@ namespace PyriteLib
             });
         }
 
+        public static void EnumerateSpaceParallel(int X, int Y, int Z, Action<int, int, int> Action)
+        {
+            EnumerateSpaceParallel(new Vector3(X, Y, Z), Action);
+        }
+
+        public static void EnumerateSpaceParallel(Vector3 size, Action<int, int, int> Action)
+        {
+            var space = from x in Enumerable.Range(0, size.X)
+                        from y in Enumerable.Range(0, size.Y)
+                        from z in Enumerable.Range(0, size.Z)
+                        select new Tuple<int, int, int>(x, y, z);
+
+            Parallel.ForEach(space, (spacePartition) =>
+            {
+                Action(spacePartition.Item1, spacePartition.Item2, spacePartition.Item3);
+            });
+        }
+
         public static bool GetIntersection(double fDst1, double fDst2, Vector3D P1, Vector3D P2, out Vector3D hit)
         {
             hit = null;
@@ -117,6 +135,20 @@ namespace PyriteLib
               || (GetIntersection(L1.Y - B2.Y, L2.Y - B2.Y, L1, L2, out hit) && InBox(hit, B1, B2, 2))
               || (GetIntersection(L1.Z - B2.Z, L2.Z - B2.Z, L1, L2, out hit) && InBox(hit, B1, B2, 3)))
                 return hit;
+
+            return null;
+        }
+
+        public static Vector3D CheckFaceEdges(Extent extent, Vector3D a, Vector3D b, Vector3D c)
+        {
+            foreach (var line in extent.Edges)
+            {
+                var result = line.IntersectTriangle(a, b, c);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
 
             return null;
         }

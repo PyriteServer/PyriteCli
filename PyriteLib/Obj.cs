@@ -116,7 +116,7 @@ namespace PyriteLib
             if (!options.Wizard)
             {
                 SpatialUtilities.EnumerateSpace(xLength, yLength, zLength,
-                    (x, y, z) => CropCube(matrix[x, y, z], x, y, z, matrix, size));
+                    (x, y, z) => CropCube(matrix[x, y, z], x, y, z, matrix, size));              
             }
         }
 
@@ -308,8 +308,11 @@ namespace PyriteLib
                 {
                     RepairType2(chunkFaceList, cubeExtent, facesToRepair, face);
                 }
+
+                chunkFaceList.Remove(face);
             }
 
+            
         }
 
         private void RepairType2(List<Face> chunkFaceList, Extent cubeExtent, Dictionary<Face, List<Vertex>> facesToRepair, Face face)
@@ -334,87 +337,58 @@ namespace PyriteLib
                                 new Vector3D(croppedVertices[1]),
                                 new Vector3D(homeVertex));
 
+            if (intersections[0] == null || intersections[1] == null) return;
+
             // Find out if we are 
-            // Type 2.1 (both line segments originating from home vertex intersect the same edge) or
-            // Type 2.2 (line segments intersect adjacent edges and vertex of adjacent edges is inside face) or
-            // Type 2.3 (line segments intersect adjacent edges but vertex of adjacent edges is not inside face)
+            // Type 2.1 (both line segments originating from home vertex intersect the same cube face) or
+            // Type 2.2 (line segments intersect adjacent cube faces and edge of adjacent faces intersects face) or
+            // Type 2.3 (line segments intersect adjacent cube faces but edge of adjacent faces does not intersect face)
 
             // Are intersections on the same edge?
-            if (intersections[0].X == intersections[1].X &&
+            if (intersections[0].X == intersections[1].X ||
                 intersections[0].Y == intersections[1].Y ||
-                intersections[0].X == intersections[1].X &&
-                intersections[0].Z == intersections[1].Z ||
-                intersections[0].Z == intersections[1].Z &&
-                intersections[0].Y == intersections[1].Y)
-            {                
+                intersections[0].Z == intersections[1].Z )
+            {
                 RepairType2_1(chunkFaceList, face, croppedVertices, homeVertex, intersections);
             }
             else
             {
                 // We differentiate between 2.2 and 2.3 by checking if the cube corner is inside the face or not.
                 // Corner means the line that forms the intersection of the two planes we intersected with our face.
-                // RepairType2_2(chunkFaceList, cubeExtent, face, croppedVertices, homeVertex, intersections);
+                RepairType2_2(chunkFaceList, cubeExtent, face, croppedVertices, homeVertex, intersections);
             }
         }
 
+        // This isn't implemented yet, like really, it is a bunch of bunk
         private void RepairType2_2(List<Face> chunkFaceList, Extent cubeExtent, Face face, Vertex[] croppedVertices, Vertex homeVertex, Vector3D[] intersections)
         {
+            var newFace = face.Clone();
 
-            // First triangle, use existing face
-            var intersectionA = SpatialUtilities.CheckLineBox(
-                                    cubeExtent.MinCorner,
-                                    cubeExtent.MaxCorner,
-                                    new Vector3D(croppedVertices[0]),
-                                    new Vector3D(homeVertex));
+            // v
+            int length = VertexList.Count();
+            VertexList.Add(new Vertex { Index = length + 1, X = homeVertex.X, Y = homeVertex.Y, Z = homeVertex.Z });
+            newFace.UpdateVertexIndex(homeVertex.Index, length + 1, false);
 
-            var intersectionB = SpatialUtilities.CheckLineBox(
-                                    cubeExtent.MinCorner,
-                                    cubeExtent.MaxCorner,
-                                    new Vector3D(croppedVertices[1]),
-                                    new Vector3D(homeVertex));
+            // vt
+            var croppedUV = TextureList[face.TextureVertexIndexList[Array.IndexOf(face.VertexIndexList, homeVertex.Index)] - 1];
+            int newIndex = croppedUV.CloneOriginal(TextureList);
+            newFace.UpdateTextureVertexIndex(croppedUV.Index, newIndex, false);
 
-            if (intersectionA != null && intersectionB != null)
+            foreach (var v in croppedVertices )
             {
-                // Clone the face before we edit it, to use for the new face
-                var newFaceA = face.Clone();                
+                // v
+                length = VertexList.Count();
+                VertexList.Add(new Vertex { Index = length + 1, X = v.X, Y = v.Y, Z = v.Z });
+                newFace.UpdateVertexIndex(v.Index, length + 1, false);
 
-                // Update the UVs before the vertices so we can key off the original vertices
-                // New UV for NewVertexA / IntersectionA, which is a new point between homeVertices[0] and croppedVertex
-                var resultA = CalculateNewUV(face, croppedVertices[0], homeVertex, intersectionA);
-                newFaceA.UpdateTextureVertexIndex(resultA.OldIndex, resultA.NewIndex, false);
-
-                // Now update the vertices
-                // Add a new vertex and update the existing face
-                int length = VertexList.Count();
-                var NewVertexA = new Vertex { Index = length + 1, X = intersectionA.X, Y = intersectionA.Y, Z = intersectionA.Z };
-                VertexList.Add(NewVertexA);
-                newFaceA.UpdateVertexIndex(croppedVertices[0].Index, length + 1, false);
-
-                length++;
-                var NewVertexB = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
-                VertexList.Add(NewVertexB);
-                newFaceA.UpdateVertexIndex(croppedVertices[1].Index, length + 1, false);
-
-                // Replace original face with newFaceA
-                chunkFaceList.Add(newFaceA);
-                chunkFaceList.Remove(face);
-
-                // Add another new vertex for the net-new face
-                length++;
-                var NewVertexC = new Vertex { Index = length + 1, X = intersectionB.X, Y = intersectionB.Y, Z = intersectionB.Z };
-                VertexList.Add(NewVertexC);
-
-                // Create the net-new face
-                var newFaceB = face.Clone();
-
-                // New UV for NewVertexB / IntersectionB, which is a new point between homeVertices[1] and croppedVertex
-                var resultB = CalculateNewUV(newFaceB, NewVertexC, homeVertex, intersectionB);
-                newFaceB.UpdateTextureVertexIndex(resultB.OldIndex, resultB.NewIndex, false);
-
-                // Add the new face
-                chunkFaceList.Add(newFaceB);
-                newFaceB.UpdateVertexIndex(homeVertex.Index, NewVertexC.Index, false);
+                // vt
+                croppedUV = TextureList[face.TextureVertexIndexList[Array.IndexOf(face.VertexIndexList, v.Index)] - 1];
+                newIndex = croppedUV.CloneOriginal(TextureList);
+                newFace.UpdateTextureVertexIndex(croppedUV.Index, newIndex, false);
             }
+
+
+            chunkFaceList.Add(newFace);
         }
 
         private void RepairType2_1(List<Face> chunkFaceList, Face face, Vertex[] croppedVertices, Vertex homeVertex, Vector3D[] intersections)
@@ -451,7 +425,6 @@ namespace PyriteLib
             if (doReplacement)
             {
                 chunkFaceList.Add(newFace);
-                chunkFaceList.Remove(face);
             }
         }
 
@@ -501,7 +474,6 @@ namespace PyriteLib
 
                 // Replace original face with newFaceA
                 chunkFaceList.Add(newFaceA);
-                chunkFaceList.Remove(face);
 
                 // Add another new vertex for the net-new face
                 length++;

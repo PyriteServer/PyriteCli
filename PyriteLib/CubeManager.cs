@@ -60,15 +60,15 @@ namespace PyriteLib
             // Generate the data			
             if (options.Debug)
             {
-                SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, (x, y) =>
-                {
-                    var vertexCounts = GenerateCubesForTextureTileAsync(outputPath, new Vector2(x, y), options, new CancellationToken()).Result;
+               // SpatialUtilities.EnumerateSpace(metadata.TextureSetSize, (x, y) =>
+               // {
+                var vertexCounts = GenerateCubesForTextureTileAsync(outputPath, new Vector2(5, 8), options, new CancellationToken()).Result;
 
-                    foreach (var cube in vertexCounts.Keys)
+                foreach (var cube in vertexCounts.Keys)
                     {
                         metadata.CubeExists[cube.X, cube.Y, cube.Z] = vertexCounts[cube] > 0;
                     }
-                });
+              //  });
             }
             else
             {
@@ -134,7 +134,7 @@ namespace PyriteLib
             // Transform associated UV's
             if (transform.Any())
             {
-                ObjInstance.TransformUVsForTextureTile(options, textureTile, transform, cancellationToken);
+               ObjInstance.TransformUVsForTextureTile(options, textureTile, transform, cancellationToken);
             }
         }
 
