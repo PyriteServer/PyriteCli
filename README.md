@@ -7,9 +7,9 @@ master | Project
 
 PyriteCLI is the command line mesh and texture slicer that builds the source data for the Pyrite3D framework.  PyriteCLI makes up one of the three core parts of the framework.  The other two being the [Server](https://github.com/PyriteServer/PyriteServer) and the [Client](https://github.com/PyriteServer/PyriteDemoClient).
 
-PyriteCLI is capable of sophisticated processing of both mesh files and textures to generate datasets which can be streamed on-demand to clients.  This capabilities can also be used for other purposes, such as slicing a large mesh into smaller chunks for direct use in Unity or WebGL applications.
+PyriteCLI is capable of sophisticated processing of both mesh files and textures to generate datasets which can be streamed on-demand to clients.  These capabilities can also be used for other purposes, such as slicing a large mesh into smaller chunks for direct use in Unity or WebGL applications.
 
-####Capabilities
+#### Capabilities
 
 + Slice meshes in three dimensions 
 + Operate on very large meshes (100+ million vertices)
@@ -18,11 +18,11 @@ PyriteCLI is capable of sophisticated processing of both mesh files and textures
 + OBJ, CTM, and EBO output
 + Distributed cloud processing support for advanced users
 
-####Tutorials
+#### Tutorials
 
 Simple slicing of an OBJ and texture file
 [Video on Youtube](https://www.youtube.com/watch?v=49oem-evWCU&feature=youtu.be)
 
 
-####Usage
+#### Usage
 ```PyriteCli --help```
